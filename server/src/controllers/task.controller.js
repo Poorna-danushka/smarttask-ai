@@ -1,8 +1,31 @@
 const prisma = require('../config/prisma');
 
+const checkProjectAccess = async (projectId, userId) => {
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      OR: [
+        { ownerId: userId },
+        { members: { some: { userId } } },
+      ],
+    },
+  });
+  return !!project;
+};
+
 exports.createTask = async (req, res) => {
   try {
     const { projectId, title, description, status, priority, dueDate, assignedTo } = req.body;
+    const userId = req.user.userId;
+
+    if (!projectId) return res.status(400).json({ message: 'projectId is required' });
+
+    const projectExists = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!projectExists) return res.status(404).json({ message: 'Project not found' });
+
+    const hasAccess = await checkProjectAccess(projectId, userId);
+    if (!hasAccess) return res.status(403).json({ message: 'Access denied to this project' });
+
     const task = await prisma.task.create({
       data: {
         projectId,
@@ -13,6 +36,7 @@ exports.createTask = async (req, res) => {
         dueDate: dueDate ? new Date(dueDate) : null,
         assignedTo: assignedTo || null,
       },
+      include: { assignee: { select: { id: true, username: true, email: true, avatar: true } } },
     });
 
     if (assignedTo && assignedTo !== req.user.userId) {
@@ -31,8 +55,17 @@ exports.createTask = async (req, res) => {
 exports.getTasksByProject = async (req, res) => {
   try {
     const { projectId } = req.params;
+    const userId = req.user.userId;
+
+    const projectExists = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!projectExists) return res.status(404).json({ message: 'Project not found' });
+
+    const hasAccess = await checkProjectAccess(projectId, userId);
+    if (!hasAccess) return res.status(403).json({ message: 'Access denied to this project' });
+
     const tasks = await prisma.task.findMany({
       where: { projectId },
+      include: { assignee: { select: { id: true, username: true, email: true, avatar: true } } },
       orderBy: { dueDate: 'asc' },
     });
     res.json(tasks);
@@ -89,11 +122,18 @@ exports.updateTask = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, status, priority, dueDate, assignedTo } = req.body;
+    const userId = req.user.userId;
 
     const oldTask = await prisma.task.findUnique({ where: { id } });
+    if (!oldTask) return res.status(404).json({ message: 'Task not found' });
+
+    const hasAccess = await checkProjectAccess(oldTask.projectId, userId);
+    if (!hasAccess) return res.status(403).json({ message: 'Access denied to this project' });
+
     const task = await prisma.task.update({
       where: { id },
       data: { title, description, status, priority, dueDate: dueDate ? new Date(dueDate) : null, assignedTo: assignedTo || null },
+      include: { assignee: { select: { id: true, username: true, email: true, avatar: true } } },
     });
 
     if (assignedTo && assignedTo !== req.user.userId && oldTask?.assignedTo !== assignedTo) {
@@ -113,6 +153,14 @@ exports.updateTaskStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    const userId = req.user.userId;
+
+    const oldTask = await prisma.task.findUnique({ where: { id } });
+    if (!oldTask) return res.status(404).json({ message: 'Task not found' });
+
+    const hasAccess = await checkProjectAccess(oldTask.projectId, userId);
+    if (!hasAccess) return res.status(403).json({ message: 'Access denied to this project' });
+
     const task = await prisma.task.update({ where: { id }, data: { status } });
     res.json(task);
   } catch (error) {
@@ -124,6 +172,14 @@ exports.updateTaskStatus = async (req, res) => {
 exports.deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.userId;
+
+    const oldTask = await prisma.task.findUnique({ where: { id } });
+    if (!oldTask) return res.status(404).json({ message: 'Task not found' });
+
+    const hasAccess = await checkProjectAccess(oldTask.projectId, userId);
+    if (!hasAccess) return res.status(403).json({ message: 'Access denied to this project' });
+
     await prisma.task.delete({ where: { id } });
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {

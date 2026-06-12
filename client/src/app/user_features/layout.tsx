@@ -15,8 +15,8 @@ type Notification = {
 };
 
 type SearchResult = {
-  projects: unknown[];
-  tasks: unknown[];
+  projects: { id: string; title: string; description: string | null }[];
+  tasks: { id: string; title: string; projectId: string; status: string; project?: { title: string } }[];
 };
 import { RootState } from '@/store';
 import { logout, setCredentials } from '@/store/slices/authSlice';
@@ -251,7 +251,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <div className="p-2">
                         <div className="text-xs font-bold text-gray-500 uppercase px-2 mb-1">Projects</div>
                         {searchResults.projects.map(p => (
-                          <Link key={p.id} href={`/user_features/projects/${p.id}`} onClick={() => setIsSearchOpen(false)} className="block px-3 py-2 hover:bg-white/5 rounded-lg transition-colors">
+                          <Link key={p.id} href={`/user_features/projects/${p.id}`} onClick={() => { setSearchQuery(''); setSearchResults(null); }} className="block px-3 py-2 hover:bg-white/5 rounded-lg transition-colors">
                             <div className="text-sm text-purple-400 font-medium">{p.title}</div>
                             <div className="text-xs text-gray-500 truncate">{p.description}</div>
                           </Link>
@@ -262,7 +262,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <div className="p-2 border-t border-white/5">
                         <div className="text-xs font-bold text-gray-500 uppercase px-2 mb-1">Tasks</div>
                         {searchResults.tasks.map(t => (
-                          <Link key={t.id} href={`/user_features/projects/${t.projectId}`} onClick={() => setIsSearchOpen(false)} className="block px-3 py-2 hover:bg-white/5 rounded-lg transition-colors">
+                          <Link key={t.id} href={`/user_features/projects/${t.projectId}`} onClick={() => { setSearchQuery(''); setSearchResults(null); }} className="block px-3 py-2 hover:bg-white/5 rounded-lg transition-colors">
                             <div className="text-sm font-medium">{t.title}</div>
                             <div className="text-xs text-gray-500">In project: {t.project?.title} • {t.status}</div>
                           </Link>

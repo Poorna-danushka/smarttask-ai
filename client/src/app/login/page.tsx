@@ -35,7 +35,7 @@ export default function Login() {
       const message = error instanceof Error
         ? error.message
         : 'Failed to login';
-      setError((error as AxiosError)?.response?.data?.message || message);
+      setError((error as any)?.response?.data?.message || message);
     } finally {
       setLoading(false);
     }

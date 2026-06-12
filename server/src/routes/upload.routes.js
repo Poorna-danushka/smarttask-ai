@@ -41,8 +41,14 @@ const upload = multer({
 
 router.use(verifyToken);
 
+// Task attachments
 router.post('/task/:taskId', upload.single('file'), uploadController.uploadFile);
 router.get('/task/:taskId', uploadController.getAttachments);
+
+// Project attachments
+router.post('/project/:projectId', upload.single('file'), uploadController.uploadFile);
+router.get('/project/:projectId', uploadController.getAttachments);
+
 router.delete('/:id', uploadController.deleteAttachment);
 
 module.exports = router;

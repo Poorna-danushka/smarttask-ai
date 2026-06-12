@@ -51,3 +51,36 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+exports.searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query;
+    const currentUserId = req.user.userId;
+
+    if (!q || q.trim().length === 0) {
+      return res.json([]);
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        id: { not: currentUserId },
+        OR: [
+          { username: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        avatar: true,
+      },
+      take: 10,
+    });
+    res.json(users);
+  } catch (error) {
+    console.error('Search users error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+

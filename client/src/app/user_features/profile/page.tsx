@@ -72,7 +72,7 @@ export default function Profile() {
         ? error.message
         : 'Failed to update profile';
       setSaveStatus('error');
-      setSaveError((error as AxiosError)?.response?.data?.message || message);
+      setSaveError((error as any)?.response?.data?.message || message);
     } finally {
       setSaving(false);
     }
@@ -103,7 +103,7 @@ export default function Profile() {
         ? error.message
         : 'Failed to change password';
       setPwStatus('error');
-      setPwError((error as AxiosError)?.response?.data?.message || message);
+      setPwError((error as any)?.response?.data?.message || message);
     } finally {
       setChangingPw(false);
     }

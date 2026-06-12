@@ -15,6 +15,7 @@ exports.createProject = async (req, res) => {
   }
 };
 
+// Get projects where user is owner or a member
 exports.getProjects = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -24,13 +25,18 @@ exports.getProjects = async (req, res) => {
 
     const [projects, total] = await Promise.all([
       prisma.project.findMany({
-        where: { ownerId: userId },
+        where: {
+          OR: [
+            { ownerId: userId },
+            { members: { some: { userId } } },
+          ],
+        },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: { _count: { select: { tasks: true } } },
       }),
-      prisma.project.count({ where: { ownerId: userId } }),
+      prisma.project.count({ where: { OR: [{ ownerId: userId }, { members: { some: { userId } } }] } }),
     ]);
 
     res.json({ data: projects, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
@@ -40,15 +46,23 @@ exports.getProjects = async (req, res) => {
   }
 };
 
+// Get a single project if owner or member
 exports.getProjectById = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
     const project = await prisma.project.findFirst({
-      where: { id, ownerId: userId },
-      include: { tasks: { orderBy: { dueDate: 'asc' } } },
+      where: {
+        id,
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
+      include: { 
+        tasks: { orderBy: { dueDate: 'asc' } }, 
+        owner: { select: { id: true, username: true, email: true, avatar: true } },
+        members: { include: { user: { select: { id: true, username: true, email: true, avatar: true } } } } 
+      },
     });
-    if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (!project) return res.status(404).json({ message: 'Project not found or access denied' });
     res.json(project);
   } catch (error) {
     console.error('Get project error:', error);
@@ -84,6 +98,60 @@ exports.deleteProject = async (req, res) => {
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     console.error('Delete project error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Project members management (owner only)
+exports.addMember = async (req, res) => {
+  try {
+    const { id } = req.params; // project id
+    const ownerId = req.user.userId;
+    const { userId: newMemberId, role } = req.body;
+
+    const project = await prisma.project.findUnique({ where: { id } });
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (project.ownerId !== ownerId) return res.status(403).json({ message: 'Only project owner can add members' });
+
+    const member = await prisma.projectMember.create({ data: { projectId: id, userId: newMemberId, role } });
+    res.status(201).json(member);
+  } catch (error) {
+    console.error('Add member error:', error);
+    if (error.code === 'P2002') return res.status(409).json({ message: 'User is already a member' });
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.listMembers = async (req, res) => {
+  try {
+    const { id } = req.params; // project id
+    const userId = req.user.userId;
+
+    const project = await prisma.project.findFirst({ where: { id, OR: [{ ownerId: userId }, { members: { some: { userId } } }] } });
+    if (!project) return res.status(404).json({ message: 'Project not found or access denied' });
+
+    const members = await prisma.projectMember.findMany({ where: { projectId: id }, include: { user: { select: { id: true, username: true, email: true, avatar: true } } } });
+    res.json(members);
+  } catch (error) {
+    console.error('List members error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.removeMember = async (req, res) => {
+  try {
+    const { id, memberId } = req.params; // id = project id
+    const ownerId = req.user.userId;
+
+    const project = await prisma.project.findUnique({ where: { id } });
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (project.ownerId !== ownerId) return res.status(403).json({ message: 'Only project owner can remove members' });
+
+    const result = await prisma.projectMember.deleteMany({ where: { projectId: id, userId: memberId } });
+    if (result.count === 0) return res.status(404).json({ message: 'Member not found' });
+    res.json({ message: 'Member removed' });
+  } catch (error) {
+    console.error('Remove member error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

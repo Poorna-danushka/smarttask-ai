@@ -21,6 +21,7 @@ model User {
   notifications        Notification[]
   refreshTokens        RefreshToken[]
   passwordResetTokens  PasswordResetToken[]
+  projectMemberships   ProjectMember[]
 }
 
 model RefreshToken {
@@ -58,6 +59,8 @@ model Project {
 
   owner       User     @relation(fields: [ownerId], references: [id])
   tasks       Task[]
+  members     ProjectMember[]
+  attachments Attachment[]
 }
 
 model Task {
@@ -87,10 +90,30 @@ model Notification {
 
 model Attachment {
   id        String   @id @default(uuid())
-  taskId    String
+  taskId    String?
+  projectId String?
   fileName  String
   fileUrl   String
   createdAt DateTime @default(now())
 
-  task      Task     @relation(fields: [taskId], references: [id])
+  task      Task?    @relation(fields: [taskId], references: [id])
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  @@index([taskId])
+  @@index([projectId])
+}
+
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  role      String?  @default("member")
+  createdAt DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
 }

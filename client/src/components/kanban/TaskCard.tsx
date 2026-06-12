@@ -17,6 +17,13 @@ export interface Task {
   dueDate: string | null;
   projectId: string;
   attachments?: Attachment[];
+  assignedTo?: string | null;
+  assignee?: {
+    id: string;
+    username: string;
+    email: string;
+    avatar: string | null;
+  } | null;
 }
 
 export const PRIORITY_COLORS: Record<string, string> = {
@@ -47,20 +54,27 @@ export default function TaskCard({ task, onDelete, onClick }: TaskCardProps) {
           {task.description && (
             <p className="text-xs text-gray-500 mb-3 line-clamp-2">{task.description}</p>
           )}
-          <div className="flex items-center flex-wrap gap-2">
-            <span className={`text-xs px-2 py-0.5 rounded-md border font-medium ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.Medium}`}>
-              {task.priority}
-            </span>
-            {task.dueDate && (
-              <span className="flex items-center gap-1 text-xs text-gray-500">
-                <Calendar className="w-3 h-3" />
-                {new Date(task.dueDate).toLocaleDateString()}
+          <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/5">
+            <div className="flex items-center flex-wrap gap-2">
+              <span className={`text-xs px-2 py-0.5 rounded-md border font-medium ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.Medium}`}>
+                {task.priority}
               </span>
-            )}
-            {task.attachments && task.attachments.length > 0 && (
-              <span className="flex items-center gap-1 text-xs text-gray-500">
-                <Paperclip className="w-3 h-3" /> {task.attachments.length}
-              </span>
+              {task.dueDate && (
+                <span className="flex items-center gap-1 text-xs text-gray-500">
+                  <Calendar className="w-3 h-3" />
+                  {new Date(task.dueDate).toLocaleDateString()}
+                </span>
+              )}
+              {task.attachments && task.attachments.length > 0 && (
+                <span className="flex items-center gap-1 text-xs text-gray-500">
+                  <Paperclip className="w-3 h-3" /> {task.attachments.length}
+                </span>
+              )}
+            </div>
+            {task.assignee && (
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white shadow-md flex-shrink-0" title={`Assigned to ${task.assignee.username}`}>
+                {task.assignee.username[0].toUpperCase()}
+              </div>
             )}
           </div>
         </div>
