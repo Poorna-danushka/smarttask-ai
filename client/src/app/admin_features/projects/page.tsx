@@ -81,33 +81,33 @@ export default function AdminProjects() {
           <h2 className="text-2xl font-bold">Project Management</h2>
           <p className="text-gray-500 text-sm mt-1">{projects.length} projects · {totalTasks} total tasks</p>
         </div>
-        <button onClick={fetchProjects} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm">
+        <button onClick={fetchProjects} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm">
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total', value: projects.length, color: 'text-white' },
           { label: 'Active', value: projects.filter(p => p.status === 'active').length, color: 'text-green-400' },
           { label: 'Completed', value: projects.filter(p => p.status === 'completed').length, color: 'text-blue-400' },
           { label: 'Total Tasks', value: totalTasks, color: 'text-purple-400' },
         ].map((s, i) => (
-          <div key={i} className="p-5 rounded-2xl bg-white/[0.03] border border-white/5">
-            <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
+          <div key={i} className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/5">
+            <p className={`text-2xl sm:text-3xl font-bold ${s.color}`}>{s.value}</p>
             <p className="text-xs text-gray-500 mt-1">{s.label}</p>
           </div>
         ))}
       </div>
 
       {/* Status Filter Tabs */}
-      <div className="flex items-center gap-1 p-1 bg-white/[0.03] rounded-xl w-fit border border-white/5">
+      <div className="flex items-center gap-1 p-1 bg-white/[0.03] rounded-xl w-full sm:w-fit border border-white/5 overflow-x-auto scrollbar-none flex-nowrap">
         {STATUS_TABS.map(t => (
           <button
             key={t.value}
             onClick={() => setStatusFilter(t.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex-shrink-0 ${
               statusFilter === t.value
                 ? 'bg-red-500/15 text-red-400 border border-red-500/25'
                 : 'text-gray-500 hover:text-gray-300'

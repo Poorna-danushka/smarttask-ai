@@ -91,21 +91,21 @@ export default function Notifications() {
   return (
     <div className="max-w-2xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Notifications</h2>
           <p className="text-gray-400 text-sm mt-1">
             {loading ? 'Loading...' : unread > 0 ? `${unread} unread notification${unread > 1 ? 's' : ''}` : 'All caught up!'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={fetchNotifications} className="p-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-colors">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button onClick={fetchNotifications} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-colors flex-shrink-0">
             <RefreshCw className="w-4 h-4" />
           </button>
           {unread > 0 && (
             <button
               onClick={markAllRead}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-purple-400 hover:text-purple-300 transition-colors bg-white/5 rounded-xl border border-white/10 hover:bg-white/8"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-purple-400 hover:text-purple-300 transition-colors bg-white/5 rounded-xl border border-white/10 hover:bg-white/8"
             >
               <CheckCheck className="w-4 h-4" />
               Mark all read
@@ -115,12 +115,12 @@ export default function Notifications() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1 p-1 bg-white/[0.03] rounded-xl w-fit border border-white/5">
+      <div className="flex items-center gap-1 p-1 bg-white/[0.03] rounded-xl w-full sm:w-fit border border-white/5 overflow-x-auto scrollbar-none flex-nowrap">
         {FILTERS.map(f => (
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all flex-shrink-0 ${
               filter === f.value
                 ? 'bg-purple-500/15 text-purple-400 border border-purple-500/25'
                 : 'text-gray-500 hover:text-gray-300'

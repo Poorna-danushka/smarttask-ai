@@ -101,26 +101,26 @@ export default function AdminUsers() {
             {users.length} total users · {admins} admin{admins !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <button
             onClick={exportCSV}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm"
           >
             Export CSV
           </button>
-          <button onClick={fetchUsers} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm">
+          <button onClick={fetchUsers} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
         </div>
       </div>
 
       {/* Role Filter Tabs */}
-      <div className="flex items-center gap-1 p-1 bg-white/[0.03] rounded-xl w-fit border border-white/5">
+      <div className="flex items-center gap-1 p-1 bg-white/[0.03] rounded-xl w-full sm:w-fit border border-white/5 overflow-x-auto scrollbar-none flex-nowrap">
         {ROLE_TABS.map(t => (
           <button
             key={t.value}
             onClick={() => setRoleFilter(t.value)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all flex-shrink-0 ${
               roleFilter === t.value
                 ? 'bg-red-500/15 text-red-400 border border-red-500/25'
                 : 'text-gray-500 hover:text-gray-300'
@@ -151,7 +151,7 @@ export default function AdminUsers() {
           <Loader2 className="w-8 h-8 animate-spin text-red-500" />
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02]">
+        <div className="rounded-2xl border border-white/[0.06] overflow-x-auto bg-white/[0.02] scrollbar-none">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/[0.06] bg-white/[0.02]">

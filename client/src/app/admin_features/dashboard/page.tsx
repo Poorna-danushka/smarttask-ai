@@ -168,7 +168,7 @@ export default function AdminDashboard() {
             <p className="text-xs text-gray-500">Send a message to all platform users</p>
           </div>
         </div>
-        <form onSubmit={handleBroadcast} className="flex gap-3">
+        <form onSubmit={handleBroadcast} className="flex flex-col sm:flex-row gap-3">
           <input
             value={broadcast}
             onChange={e => setBroadcast(e.target.value)}
@@ -178,7 +178,7 @@ export default function AdminDashboard() {
           <button
             type="submit"
             disabled={broadcasting || !broadcast.trim()}
-            className="flex items-center gap-2 px-5 py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition-all"
+            className="flex items-center justify-center gap-2 px-5 py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition-all w-full sm:w-auto flex-shrink-0"
           >
             {broadcasting ? <Loader2 className="w-4 h-4 animate-spin" /> : broadcastStatus === 'success' ? <CheckCheck className="w-4 h-4" /> : <Send className="w-4 h-4" />}
             {broadcasting ? 'Sending...' : broadcastStatus === 'success' ? 'Sent!' : 'Broadcast'}

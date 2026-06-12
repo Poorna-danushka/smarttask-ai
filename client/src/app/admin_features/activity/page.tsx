@@ -105,42 +105,42 @@ export default function AdminActivity() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Activity Log</h2>
           <p className="text-gray-500 text-sm mt-1">
             {loading ? 'Loading...' : `${activities.length} total events · ${today} today`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           {/* Auto-refresh toggle */}
           <button
             onClick={() => setAutoRefresh(v => !v)}
             title={autoRefresh ? 'Disable auto-refresh' : 'Enable auto-refresh (30s)'}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
               autoRefresh
                 ? 'bg-green-500/10 border-green-500/20 text-green-400'
                 : 'bg-white/[0.03] border-white/10 text-gray-500 hover:text-gray-300'
             }`}
           >
             {autoRefresh ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-            <span className="hidden sm:inline">{autoRefresh ? 'Live' : 'Live Off'}</span>
+            <span>{autoRefresh ? 'Live' : 'Live Off'}</span>
           </button>
 
           {/* Export CSV */}
           <button
             onClick={exportCSV}
             disabled={activities.length === 0}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-gray-400 hover:text-white hover:bg-white/[0.06] transition-all text-sm disabled:opacity-40"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-gray-400 hover:text-white hover:bg-white/[0.06] transition-all text-sm disabled:opacity-40"
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export</span>
+            <span>Export</span>
           </button>
 
           <button
             onClick={fetchActivity}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-gray-400 hover:text-white hover:bg-white/[0.06] transition-all text-sm"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-gray-400 hover:text-white hover:bg-white/[0.06] transition-all text-sm"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>

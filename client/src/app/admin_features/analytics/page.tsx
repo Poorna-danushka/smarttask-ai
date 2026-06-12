@@ -55,31 +55,31 @@ export default function AdminAnalytics() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Platform Analytics</h2>
           <p className="text-gray-500 text-sm mt-1">Full overview of platform performance and growth</p>
         </div>
         <button
           onClick={fetchStats}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm"
         >
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {summaryCards.map((s, i) => {
           const Icon = s.icon;
           return (
-            <div key={i} className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-colors">
-              <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center mb-4`}>
-                <Icon className={`w-5 h-5 ${s.color}`} />
+            <div key={i} className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-colors">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${s.bg} flex items-center justify-center mb-3 sm:mb-4`}>
+                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${s.color}`} />
               </div>
-              <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-sm text-white font-medium mt-1">{s.label}</p>
-              <p className="text-xs text-gray-600 mt-0.5">{s.delta}</p>
+              <p className={`text-2xl sm:text-3xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-xs sm:text-sm text-white font-medium mt-1">{s.label}</p>
+              <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5">{s.delta}</p>
             </div>
           );
         })}
