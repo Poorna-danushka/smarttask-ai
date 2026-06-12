@@ -200,7 +200,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* User Info */}
         <div className="p-4 border-t border-white/[0.06] flex-shrink-0">
-          <Link href="/profile" onClick={() => setSidebarOpen(false)}
+          <Link href="/user_features/profile" onClick={() => setSidebarOpen(false)}
             className="flex items-center gap-3 px-2 mb-3 py-2 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer group"
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-[0_0_12px_rgba(139,92,246,0.3)]">
@@ -276,7 +276,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/notifications"
+            <Link href="/user_features/notifications"
               className="relative p-2 rounded-xl hover:bg-white/5 transition-colors"
             >
               <Bell className="w-5 h-5 text-gray-400" />
@@ -284,7 +284,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]"></span>
               )}
             </Link>
-            <Link href="/profile" className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center font-bold text-sm hover:shadow-[0_0_15px_rgba(139,92,246,0.4)] transition-shadow">
+            <Link href="/user_features/profile" className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center font-bold text-sm hover:shadow-[0_0_15px_rgba(139,92,246,0.4)] transition-shadow">
               {user?.username?.[0]?.toUpperCase() || 'U'}
             </Link>
           </div>

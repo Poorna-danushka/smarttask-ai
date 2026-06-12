@@ -6,7 +6,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import Link from 'next/link';
 import {
   LayoutDashboard, Users, FolderKanban, Activity, BarChart2,
-  LogOut, Shield, ChevronRight
+  LogOut, Shield, ChevronRight, Menu, X
 } from 'lucide-react';
 import { RootState } from '@/store';
 import { adminLogout, rehydrateAdmin } from '@/store/slices/adminAuthSlice';
@@ -25,6 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     // Rehydrate admin session from secure cookie storage on every page load/refresh
@@ -59,9 +60,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pageName = navItems.find(n => n.href === pathname)?.name || pathname.split('/').pop() || 'Admin';
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-[#080a0f] text-white flex">
+    <div className="fixed inset-0 bg-[#080a0f] text-white flex overflow-hidden">
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#080a0f]/90 backdrop-blur-md border-b border-white/[0.06] z-50 flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5 text-red-500" />
+          <span className="font-bold text-sm">Admin Panel</span>
+        </div>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg hover:bg-white/5">
+          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Sidebar Overlay (mobile) */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 flex-shrink-0 bg-[#0c0e13] border-r border-white/[0.06] flex flex-col">
+      <aside className={`absolute md:static inset-y-0 left-0 z-40 w-64 bg-[#0c0e13] border-r border-white/[0.06] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} h-full flex-shrink-0`}>
         {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-white/[0.06]">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-red-600 to-orange-500 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.35)]">
@@ -81,6 +98,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             const Icon = item.icon;
             return (
               <Link key={item.href} href={item.href}
+                onClick={() => setSidebarOpen(false)}
                 className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-150 group ${isActive
                     ? 'bg-gradient-to-r from-red-500/15 to-orange-500/5 text-white border border-red-500/20'
                     : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-200'
@@ -119,10 +137,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <header className="h-16 flex-shrink-0 flex items-center justify-between px-8 border-b border-white/[0.06] bg-[#080a0f]/60 backdrop-blur-md">
-          <div className="flex items-center gap-2 text-sm">
+        <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 md:px-8 border-b border-white/[0.06] bg-[#080a0f]/60 backdrop-blur-md mt-14 md:mt-0 relative z-30">
+          <div className="flex items-center gap-2 text-sm hidden md:flex">
             <span className="text-gray-600">Admin</span>
             <ChevronRight className="w-3.5 h-3.5 text-gray-700" />
             <span className="text-white font-medium">{pageName}</span>
@@ -136,7 +154,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto p-8">
+        <main className="flex-1 overflow-auto p-5 md:p-8">
           {children}
         </main>
       </div>
