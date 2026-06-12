@@ -74,38 +74,43 @@ export default function TaskCard({ task, onDelete, onClick, onMoveForward }: Tas
             <p className="text-xs text-gray-500 mb-3 line-clamp-2">{task.description}</p>
           )}
           <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/5">
-            <div className="flex items-center flex-wrap gap-2 flex-1">
-              <span className={`text-xs px-2 py-0.5 rounded-md border font-medium ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.Medium}`}>
+            {/* Left aligned badges */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md border font-semibold tracking-wide uppercase ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.Medium}`}>
                 {task.priority}
               </span>
               {task.dueDate && (
                 <span className="flex items-center gap-1 text-xs text-gray-500">
-                  <Calendar className="w-3 h-3" />
-                  {new Date(task.dueDate).toLocaleDateString()}
+                  <Calendar className="w-3.5 h-3.5 text-gray-600" />
+                  {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                 </span>
               )}
               {task.attachments && task.attachments.length > 0 && (
                 <span className="flex items-center gap-1 text-xs text-gray-500">
-                  <Paperclip className="w-3 h-3" /> {task.attachments.length}
+                  <Paperclip className="w-3.5 h-3.5 text-gray-600" /> {task.attachments.length}
                 </span>
               )}
+            </div>
+
+            {/* Right aligned actions & assignee */}
+            <div className="flex items-center gap-2 flex-shrink-0 ml-auto pl-2">
               {nextStatus && onMoveForward && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onMoveForward(task.id, nextStatus, e);
                   }}
-                  className={`ml-auto px-2 py-0.5 rounded-md border text-[10px] font-semibold transition-all duration-150 shadow-sm ${buttonStyle}`}
+                  className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold transition-all duration-150 shadow-sm ${buttonStyle}`}
                 >
                   {buttonLabel}
                 </button>
               )}
+              {task.assignee && (
+                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white shadow-md flex-shrink-0" title={`Assigned to ${task.assignee.username}`}>
+                  {task.assignee.username[0].toUpperCase()}
+                </div>
+              )}
             </div>
-            {task.assignee && (
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white shadow-md flex-shrink-0 ml-2" title={`Assigned to ${task.assignee.username}`}>
-                {task.assignee.username[0].toUpperCase()}
-              </div>
-            )}
           </div>
         </div>
       </div>
