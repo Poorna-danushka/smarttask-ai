@@ -173,6 +173,38 @@ export default function ProjectDetail() {
     }
   };
 
+  const handleMoveTaskStatus = async (taskId: string, nextStatus: string) => {
+    // Optimistic UI update
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: nextStatus } : t));
+    
+    // Notify others via socket
+    socketRef.current?.emit('taskUpdated', { projectId: id, taskId, status: nextStatus });
+    
+    try {
+      // Persist
+      await api.patch(`/tasks/${taskId}/status`, { status: nextStatus });
+    } catch (error) {
+      console.error("Failed to update task status:", error);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!viewingTask) return;
+    try {
+      // Optimistic UI update
+      setTasks(prev => prev.map(t => t.id === viewingTask.id ? { ...t, status: newStatus } : t));
+      setViewingTask(prev => prev ? { ...prev, status: newStatus } : null);
+      
+      // Notify others via socket
+      socketRef.current?.emit('taskUpdated', { projectId: id, taskId: viewingTask.id, status: newStatus });
+      
+      // Persist
+      await api.patch(`/tasks/${viewingTask.id}/status`, { status: newStatus });
+    } catch (err: any) {
+      console.error('Failed to update task status', err?.response?.data || err);
+    }
+  };
+
   const handleDeleteTask = async (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setTasks(prev => prev.filter(t => t.id !== taskId));
@@ -385,6 +417,7 @@ export default function ProjectDetail() {
                 onDelete={handleDeleteTask}
                 onAddTask={(s) => { setDefaultStatus(s); setNewTask(p => ({ ...p, status: s, assignedTo: '' })); setIsModalOpen(true); }}
                 onTaskClick={(t) => setViewingTask(t)}
+                onMoveForward={handleMoveTaskStatus}
               />
             ))}
           </div>
@@ -604,7 +637,15 @@ export default function ProjectDetail() {
               <div className="grid grid-cols-3 gap-4 text-xs">
                 <div>
                   <span className="block font-medium text-gray-500 mb-1">Status</span>
-                  <div className="px-3 py-2 bg-white/5 rounded-lg text-gray-300 font-semibold">{viewingTask.status}</div>
+                  <select
+                    value={viewingTask.status}
+                    onChange={e => handleStatusChange(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-black/40 border border-white/10 rounded-lg text-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500/50 font-semibold"
+                  >
+                    {COLUMNS.map(col => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <span className="block font-medium text-gray-500 mb-1">Due Date</span>

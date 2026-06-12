@@ -37,11 +37,30 @@ interface TaskCardProps {
   task: Task;
   onDelete: (id: string, e: React.MouseEvent) => void;
   onClick: (task: Task) => void;
+  onMoveForward?: (taskId: string, nextStatus: string, e: React.MouseEvent) => void;
 }
 
-export default function TaskCard({ task, onDelete, onClick }: TaskCardProps) {
+export default function TaskCard({ task, onDelete, onClick, onMoveForward }: TaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
+
+  let nextStatus = '';
+  let buttonLabel = '';
+  let buttonStyle = '';
+
+  if (task.status === 'Todo') {
+    nextStatus = 'In Progress';
+    buttonLabel = 'Start →';
+    buttonStyle = 'bg-blue-500/10 hover:bg-blue-500/25 text-blue-400 border-blue-500/20';
+  } else if (task.status === 'In Progress') {
+    nextStatus = 'Review';
+    buttonLabel = 'Submit →';
+    buttonStyle = 'bg-yellow-500/10 hover:bg-yellow-500/25 text-yellow-400 border-yellow-500/20';
+  } else if (task.status === 'Review') {
+    nextStatus = 'Completed';
+    buttonLabel = 'Approve ✓';
+    buttonStyle = 'bg-green-500/10 hover:bg-green-500/25 text-green-400 border-green-500/20';
+  }
 
   return (
     <div ref={setNodeRef} style={style} onClick={() => onClick(task)} className="group p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/8 transition-all cursor-pointer relative">
@@ -55,7 +74,7 @@ export default function TaskCard({ task, onDelete, onClick }: TaskCardProps) {
             <p className="text-xs text-gray-500 mb-3 line-clamp-2">{task.description}</p>
           )}
           <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/5">
-            <div className="flex items-center flex-wrap gap-2">
+            <div className="flex items-center flex-wrap gap-2 flex-1">
               <span className={`text-xs px-2 py-0.5 rounded-md border font-medium ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.Medium}`}>
                 {task.priority}
               </span>
@@ -70,9 +89,20 @@ export default function TaskCard({ task, onDelete, onClick }: TaskCardProps) {
                   <Paperclip className="w-3 h-3" /> {task.attachments.length}
                 </span>
               )}
+              {nextStatus && onMoveForward && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMoveForward(task.id, nextStatus, e);
+                  }}
+                  className={`ml-auto px-2 py-0.5 rounded-md border text-[10px] font-semibold transition-all duration-150 shadow-sm ${buttonStyle}`}
+                >
+                  {buttonLabel}
+                </button>
+              )}
             </div>
             {task.assignee && (
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white shadow-md flex-shrink-0" title={`Assigned to ${task.assignee.username}`}>
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white shadow-md flex-shrink-0 ml-2" title={`Assigned to ${task.assignee.username}`}>
                 {task.assignee.username[0].toUpperCase()}
               </div>
             )}

@@ -24,9 +24,10 @@ interface KanbanColumnProps {
   onDelete: (id: string, e: React.MouseEvent) => void;
   onAddTask: (status: string) => void;
   onTaskClick: (task: Task) => void;
+  onMoveForward?: (taskId: string, nextStatus: string, e: React.MouseEvent) => void;
 }
 
-export default function KanbanColumn({ status, tasks, onDelete, onAddTask, onTaskClick }: KanbanColumnProps) {
+export default function KanbanColumn({ status, tasks, onDelete, onAddTask, onTaskClick, onMoveForward }: KanbanColumnProps) {
   const taskIds = tasks.map(t => t.id);
   
   return (
@@ -46,7 +47,7 @@ export default function KanbanColumn({ status, tasks, onDelete, onAddTask, onTas
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2 flex-1 min-h-[100px]">
           {tasks.map(task => (
-            <TaskCard key={task.id} task={task} onDelete={onDelete} onClick={onTaskClick} />
+            <TaskCard key={task.id} task={task} onDelete={onDelete} onClick={onTaskClick} onMoveForward={onMoveForward} />
           ))}
           {tasks.length === 0 && (
             <div className="flex-1 flex items-center justify-center py-8 border-2 border-dashed border-white/5 rounded-xl">
