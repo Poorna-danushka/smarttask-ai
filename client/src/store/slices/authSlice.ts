@@ -30,6 +30,8 @@ interface User {
   username: string;
   email: string;
   role: string;
+  /** Optional profile picture URL (relative path stored in DB, e.g. /uploads/avatar-xxx.jpg) */
+  avatar?: string | null;
 }
 
 /**

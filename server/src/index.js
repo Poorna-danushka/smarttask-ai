@@ -42,8 +42,8 @@ app.use(cors({
   optionsSuccessStatus: 204,
 }));
 
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: false, limit: '10kb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(helmet.contentSecurityPolicy({
   directives: {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   User, Mail, Shield, Camera, Check, Loader2,
@@ -39,6 +39,11 @@ export default function Profile() {
   const [pwStatus, setPwStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [pwError, setPwError] = useState('');
 
+  // Avatar
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar || null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
   // Stats
   const [stats, setStats] = useState<DashboardStats | null>(null);
 
@@ -50,7 +55,9 @@ export default function Profile() {
       } catch {}
     };
     fetchStats();
-  }, []);
+    // Sync avatar from Redux user if it changes (e.g. after login)
+    if (user?.avatar) setAvatarUrl(user.avatar);
+  }, [user?.avatar]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +67,7 @@ export default function Profile() {
     try {
       const res = await api.patch('/user/profile', { username });
       if (user) {
-        const updatedUser = { ...user, username: res.data.user.username };
+        const updatedUser = { ...user, username: res.data.user.username, avatar: res.data.user.avatar ?? user.avatar };
         const currentToken = getAccessToken(false) || '';
         dispatch(setCredentials({ user: updatedUser, accessToken: currentToken }));
         saveAuthTokens(currentToken, getRefreshToken(false) || '', updatedUser, false);
@@ -75,6 +82,31 @@ export default function Profile() {
       setSaveError((error as any)?.response?.data?.message || message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Upload profile avatar image
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    const formData = new FormData();
+    formData.append('avatar', file);
+    try {
+      const res = await api.post('/user/avatar', formData);
+      const newAvatarUrl = `http://localhost:5000${res.data.user.avatar}`;
+      setAvatarUrl(newAvatarUrl);
+      if (user) {
+        const updatedUser = { ...user, avatar: res.data.user.avatar };
+        const currentToken = getAccessToken(false) || '';
+        dispatch(setCredentials({ user: updatedUser, accessToken: currentToken }));
+        saveAuthTokens(currentToken, getRefreshToken(false) || '', updatedUser, false);
+      }
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Avatar upload failed');
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
     }
   };
 
@@ -136,12 +168,34 @@ export default function Profile() {
             {/* Avatar */}
             <div className="relative group">
               <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl bg-gradient-to-tr from-purple-600 to-blue-500 p-1 shadow-[0_0_40px_rgba(139,92,246,0.3)] flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
-                <div className="w-full h-full rounded-[22px] bg-[#0a0a0a] flex items-center justify-center text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-tr from-purple-400 to-blue-300">
-                  {user?.username?.[0]?.toUpperCase() || 'U'}
-                </div>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl.startsWith('http') ? avatarUrl : `http://localhost:5000${avatarUrl}`}
+                    alt="Profile avatar"
+                    className="w-full h-full rounded-[22px] object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-[22px] bg-[#0a0a0a] flex items-center justify-center text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-tr from-purple-400 to-blue-300">
+                    {user?.username?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
               </div>
-              <button className="absolute bottom-2 right-2 p-3 rounded-xl bg-white text-black hover:bg-gray-200 transition-all shadow-xl hover:scale-110 active:scale-95 z-10">
-                <Camera className="w-5 h-5" />
+              {/* Hidden file input triggered by camera button */}
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute bottom-2 right-2 p-3 rounded-xl bg-white text-black hover:bg-gray-200 transition-all shadow-xl hover:scale-110 active:scale-95 z-10 disabled:opacity-60"
+              >
+                {uploadingAvatar ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
               </button>
             </div>
 

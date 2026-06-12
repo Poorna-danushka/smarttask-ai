@@ -35,10 +35,25 @@ const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
  */
 const api = axios.create({
   baseURL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // NOTE: Do NOT set a default Content-Type here.
+  // For JSON requests we set it per-request; for FormData uploads
+  // axios must be free to auto-set 'multipart/form-data; boundary=...'.
 });
+
+// Set JSON content-type for every non-FormData request
+api.interceptors.request.use(
+  (config) => {
+    // If sending FormData, remove any preset Content-Type so
+    // the browser / axios can set it with the correct boundary.
+    if (config.data instanceof FormData) {
+      if (config.headers) delete config.headers['Content-Type'];
+    } else if (config.headers && !config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json';
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 /**
  * Request Interceptor
