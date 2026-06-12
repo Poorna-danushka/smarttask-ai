@@ -64,7 +64,9 @@ export default function ProjectDetail() {
 
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [uploading, setUploading] = useState(false);
-  
+  /** Error message shown below the Upload button — cleared on next upload attempt */
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   // Team management states
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -214,18 +216,46 @@ export default function ProjectDetail() {
     }
   };
 
+  // Allowed MIME types and their friendly label — must match server allowlist
+  const ALLOWED_UPLOAD_TYPES: Record<string, string> = {
+    'image/jpeg': 'JPEG image',
+    'image/png': 'PNG image',
+    'image/gif': 'GIF image',
+    'image/webp': 'WebP image',
+    'application/pdf': 'PDF document',
+    'text/plain': 'Plain text file',
+    'application/msword': 'Word document (.doc)',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word document (.docx)',
+    'application/vnd.ms-excel': 'Excel spreadsheet (.xls)',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel spreadsheet (.xlsx)',
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !viewingTask) return;
     const file = e.target.files[0];
-    
+    setUploadError(null);
+
+    // ── Client-side validation ─────────────────────────────────────────────────
+    if (!ALLOWED_UPLOAD_TYPES[file.type]) {
+      const allowed = 'JPG, PNG, GIF, WebP, PDF, TXT, DOC, DOCX, XLS, XLSX';
+      setUploadError(`"${file.name}" is not an allowed file type. Accepted: ${allowed}`);
+      e.target.value = '';
+      return;
+    }
+    const MAX_MB = 10;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setUploadError(`"${file.name}" exceeds the ${MAX_MB} MB size limit.`);
+      e.target.value = '';
+      return;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const formData = new FormData();
     formData.append('file', file);
     
     setUploading(true);
     try {
-      const res = await api.post(`/uploads/task/${viewingTask.id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await api.post(`/uploads/task/${viewingTask.id}`, formData);
       const newAttachment = res.data;
       
       // Update local state
@@ -237,11 +267,13 @@ export default function ProjectDetail() {
         }
         return t;
       }));
-    } catch (err) {
-      console.error('Upload failed', err);
+    } catch (err: any) {
+      // Surface the server's message (e.g. invalid file type, size limit)
+      const serverMsg = err?.response?.data?.message;
+      setUploadError(serverMsg || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
-      e.target.value = ''; // Reset input
+      e.target.value = '';
     }
   };
 
@@ -598,17 +630,40 @@ export default function ProjectDetail() {
 
               {/* Attachments Section */}
               <div className="border-t border-white/10 pt-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-bold flex items-center gap-2"><Paperclip className="w-4 h-4 text-purple-400" /> Attachments</h4>
                   <div>
-                    <input type="file" id="file-upload" className="hidden" onChange={handleFileUpload} />
-                    <label htmlFor="file-upload" className="cursor-pointer flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-medium transition-colors">
+                    {/* accept restricts the OS file picker to allowed types */}
+                    <input
+                      type="file"
+                      id="file-upload"
+                      className="hidden"
+                      disabled={uploading}
+                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      onChange={handleFileUpload}
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className={`cursor-pointer flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-medium transition-colors ${
+                        uploading ? 'opacity-50 pointer-events-none' : ''
+                      }`}
+                    >
                       {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-                      Upload File
+                      {uploading ? 'Uploading…' : 'Upload File'}
                     </label>
                   </div>
                 </div>
 
+                {/* Upload error banner */}
+                {uploadError && (
+                  <div className="mb-3 flex items-start gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-300 text-xs">
+                    <X
+                      className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 cursor-pointer hover:text-red-200"
+                      onClick={() => setUploadError(null)}
+                    />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
                   {(!viewingTask.attachments || viewingTask.attachments.length === 0) ? (
                     <div className="col-span-full text-center py-6 border border-dashed border-white/10 rounded-xl text-gray-500 text-sm">
