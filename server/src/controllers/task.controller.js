@@ -97,13 +97,29 @@ exports.getAllUserTasks = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const projects = await prisma.project.findMany({ where: { ownerId: userId }, select: { id: true } });
-    const projectIds = projects.map(p => p.id);
+    // Include both owned projects AND projects where user is a member
+    const [ownedProjects, memberProjects] = await Promise.all([
+      prisma.project.findMany({ where: { ownerId: userId }, select: { id: true } }),
+      prisma.projectMember.findMany({ where: { userId }, select: { projectId: true } }),
+    ]);
+    const projectIds = [
+      ...new Set([
+        ...ownedProjects.map(p => p.id),
+        ...memberProjects.map(m => m.projectId),
+      ]),
+    ];
+
+    if (projectIds.length === 0) {
+      return res.json({ data: [], meta: { total: 0, page, limit, totalPages: 0 } });
+    }
 
     const [tasks, total] = await Promise.all([
       prisma.task.findMany({
         where: { projectId: { in: projectIds } },
-        include: { project: { select: { title: true } } },
+        include: {
+          project: { select: { title: true } },
+          assignee: { select: { id: true, username: true, email: true, avatar: true } },
+        },
         orderBy: { dueDate: 'asc' },
         skip,
         take: limit,
@@ -118,6 +134,7 @@ exports.getAllUserTasks = async (req, res) => {
   }
 };
 
+
 exports.updateTask = async (req, res) => {
   try {
     const { id } = req.params;
@@ -130,9 +147,18 @@ exports.updateTask = async (req, res) => {
     const hasAccess = await checkProjectAccess(oldTask.projectId, userId);
     if (!hasAccess) return res.status(403).json({ message: 'Access denied to this project' });
 
+    // Build update data with only the fields that were actually sent
+    const data = {};
+    if (title !== undefined) data.title = title;
+    if (description !== undefined) data.description = description;
+    if (status !== undefined) data.status = status;
+    if (priority !== undefined) data.priority = priority;
+    if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
+    if (assignedTo !== undefined) data.assignedTo = assignedTo || null;
+
     const task = await prisma.task.update({
       where: { id },
-      data: { title, description, status, priority, dueDate: dueDate ? new Date(dueDate) : null, assignedTo: assignedTo || null },
+      data,
       include: { assignee: { select: { id: true, username: true, email: true, avatar: true } } },
     });
 

@@ -14,8 +14,14 @@ if (!fs.existsSync(uploadDir)) {
 const allowedMimeTypes = [
   'image/jpeg',
   'image/png',
+  'image/gif',
+  'image/webp',
   'application/pdf',
   'text/plain',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 
 const storage = multer.diskStorage({
@@ -33,7 +39,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!allowedMimeTypes.includes(file.mimetype)) {
-      return cb(new Error('Invalid file type. Allowed formats: jpg, png, pdf, txt.'));
+      return cb(Object.assign(new Error('Invalid file type. Allowed: images, PDF, Word, Excel, TXT.'), { status: 400 }));
     }
     cb(null, true);
   },
@@ -42,11 +48,21 @@ const upload = multer({
 router.use(verifyToken);
 
 // Task attachments
-router.post('/task/:taskId', upload.single('file'), uploadController.uploadFile);
+router.post('/task/:taskId', (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) return res.status(400).json({ message: err.message });
+    next();
+  });
+}, uploadController.uploadFile);
 router.get('/task/:taskId', uploadController.getAttachments);
 
 // Project attachments
-router.post('/project/:projectId', upload.single('file'), uploadController.uploadFile);
+router.post('/project/:projectId', (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) return res.status(400).json({ message: err.message });
+    next();
+  });
+}, uploadController.uploadFile);
 router.get('/project/:projectId', uploadController.getAttachments);
 
 router.delete('/:id', uploadController.deleteAttachment);

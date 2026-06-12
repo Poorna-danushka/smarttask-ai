@@ -200,21 +200,17 @@ export default function ProjectDetail() {
   const handleAssigneeChange = async (assignedToId: string) => {
     if (!viewingTask) return;
     try {
+      // Send only the assignedTo field — backend uses partial update
       const res = await api.put(`/tasks/${viewingTask.id}`, {
-        title: viewingTask.title,
-        description: viewingTask.description,
-        status: viewingTask.status,
-        priority: viewingTask.priority,
-        dueDate: viewingTask.dueDate,
-        assignedTo: assignedToId || null
+        assignedTo: assignedToId || null,
       });
       const updatedTask = res.data;
       
       // Update state
       setTasks(prev => prev.map(t => t.id === viewingTask.id ? { ...t, assignee: updatedTask.assignee, assignedTo: updatedTask.assignedTo } : t));
       setViewingTask(prev => prev ? { ...prev, assignee: updatedTask.assignee, assignedTo: updatedTask.assignedTo } : null);
-    } catch (err) {
-      console.error('Failed to update task assignee', err);
+    } catch (err: any) {
+      console.error('Failed to update task assignee', err?.response?.data || err);
     }
   };
 
