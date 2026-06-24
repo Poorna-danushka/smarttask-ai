@@ -102,9 +102,19 @@ export default function TaskCard({ task, onDelete, onClick, onMoveForward }: Tas
             </div>
 
             {task.assignee && (
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white shadow-md flex-shrink-0 ml-2" title={`Assigned to ${task.assignee.username}`}>
-                {task.assignee.username[0].toUpperCase()}
-              </div>
+              task.assignee.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={task.assignee.avatar.startsWith('http') ? task.assignee.avatar : `http://localhost:5000${task.assignee.avatar}`}
+                  alt={task.assignee.username}
+                  title={`Assigned to ${task.assignee.username}`}
+                  className="w-6 h-6 rounded-full object-cover shadow-md ring-1 ring-black flex-shrink-0 ml-2"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white shadow-md flex-shrink-0 ml-2" title={`Assigned to ${task.assignee.username}`}>
+                  {task.assignee.username[0].toUpperCase()}
+                </div>
+              )
             )}
           </div>
 

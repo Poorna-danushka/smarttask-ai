@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { io } from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
 import Link from 'next/link';
-import { getAccessToken, getStoredUser, clearAuthTokens } from '@/lib/tokenStorage';
+import { getStoredUser, clearAuthTokens } from '@/lib/tokenStorage';
 import {
   LayoutDashboard, FolderKanban, CheckSquare, LogOut,
   BrainCircuit, Bell, Menu, X, BarChart2, User, ChevronRight, Shield, Search
@@ -44,10 +45,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   /* ── auth rehydration ── */
   useEffect(() => {
-    const token      = getAccessToken(false);
-    const storedUser = getStoredUser(false);
-    if (token && storedUser && !isAuthenticated) {
-      dispatch(setCredentials({ user: storedUser, accessToken: token }));
+    const storedUser = getStoredUser();
+    // Only restore session if the stored user is a regular (non-admin) user
+    if (storedUser && storedUser.role !== 'admin' && !isAuthenticated) {
+      dispatch(setCredentials({ user: storedUser }));
     }
     setTimeout(() => setHydrated(true), 0);
   }, [dispatch, isAuthenticated]);
@@ -70,6 +71,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const i = window.setInterval(fetchUnreadCount, 30_000);
     return () => { window.clearTimeout(t); window.clearInterval(i); };
   }, [isAuthenticated, fetchUnreadCount]);
+
+  /* ── real-time user socket room for notifications ── */
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const socket = io('http://localhost:5000');
+    socket.emit('joinUser', user.id);
+
+    socket.on('notificationReceived', () => {
+      fetchUnreadCount();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [isAuthenticated, user, fetchUnreadCount]);
 
   /* ── close sidebar on nav ── */
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
@@ -108,7 +124,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const handleLogout = () => {
-    clearAuthTokens(false);
+    clearAuthTokens();
     dispatch(logout());
     router.push('/login');
   };
@@ -269,11 +285,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="flex items-center gap-3 px-2 py-2 rounded-xl
                        hover:bg-white/[0.05] transition-colors group"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500
-                            flex items-center justify-center font-bold text-xs flex-shrink-0
-                            shadow-[0_0_10px_rgba(139,92,246,0.3)]">
-              {user?.username?.[0]?.toUpperCase() ?? 'U'}
-            </div>
+            {/* Sidebar user avatar */}
+            {user?.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000${user.avatar}`}
+                alt={user.username}
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0 shadow-[0_0_10px_rgba(139,92,246,0.3)]"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500
+                              flex items-center justify-center font-bold text-xs flex-shrink-0
+                              shadow-[0_0_10px_rgba(139,92,246,0.3)]">
+                {user?.username?.[0]?.toUpperCase() ?? 'U'}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate leading-tight">
                 {user?.username}
@@ -387,11 +413,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                  shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
               )}
             </Link>
-            <Link href="/user_features/profile"
-              className="w-8 h-8 rounded-full ml-1 bg-gradient-to-tr from-purple-500 to-blue-500
-                         flex items-center justify-center font-bold text-sm
-                         hover:shadow-[0_0_14px_rgba(139,92,246,0.4)] transition-shadow">
-              {user?.username?.[0]?.toUpperCase() ?? 'U'}
+            <Link href="/user_features/profile" className="flex-shrink-0">
+              {user?.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000${user.avatar}`}
+                  alt={user?.username ?? 'Profile'}
+                  className="w-8 h-8 rounded-full object-cover ml-1 ring-2 ring-purple-500/30
+                             hover:ring-purple-500/60 hover:shadow-[0_0_14px_rgba(139,92,246,0.4)] transition-all"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full ml-1 bg-gradient-to-tr from-purple-500 to-blue-500
+                             flex items-center justify-center font-bold text-sm
+                             hover:shadow-[0_0_14px_rgba(139,92,246,0.4)] transition-shadow">
+                  {user?.username?.[0]?.toUpperCase() ?? 'U'}
+                </div>
+              )}
             </Link>
           </div>
         </header>

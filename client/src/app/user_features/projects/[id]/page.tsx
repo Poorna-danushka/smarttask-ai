@@ -12,7 +12,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import {
   Plus, Loader2, ArrowLeft, Calendar, X, Trash2, Paperclip, Download, UploadCloud,
-  Users, UserPlus, FileText, Shield, UserX
+  FileText
 } from 'lucide-react';
 import api from '@/lib/axios';
 import { io, Socket } from 'socket.io-client';
@@ -67,12 +67,7 @@ export default function ProjectDetail() {
   /** Error message shown below the Upload button — cleared on next upload attempt */
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Team management states
-  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
-  
+
   const socketRef = useRef<Socket | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -83,9 +78,36 @@ export default function ProjectDetail() {
 
     if (id) {
       socket.emit('joinProject', id);
-      
       socket.on('taskChanged', (data: { taskId: string, status: string }) => {
         setTasks(prev => prev.map(t => t.id === data.taskId ? { ...t, status: data.status } : t));
+      });
+
+      socket.on('memberAdded', (newMember: ProjectMember) => {
+        setProject(prev => {
+          if (!prev) return null;
+          if (prev.members.some(m => m.id === newMember.id)) return prev;
+          return {
+            ...prev,
+            members: [...prev.members, newMember]
+          };
+        });
+      });
+
+      socket.on('memberRemoved', (data: { projectId: string, userId: string }) => {
+        setProject(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            members: prev.members.filter(m => m.userId !== data.userId)
+          };
+        });
+        setTasks(prev => prev.map(t => t.assignedTo === data.userId ? { ...t, assignedTo: null, assignee: null } : t));
+        setViewingTask(prev => {
+          if (prev && prev.assignedTo === data.userId) {
+            return { ...prev, assignedTo: null, assignee: null };
+          }
+          return prev;
+        });
       });
       
       fetchProject();
@@ -96,26 +118,31 @@ export default function ProjectDetail() {
     };
   }, [id]);
 
-  // Handle user search debounce
+  // Keyboard shortcut to open New Task modal when pressing 'N'
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    const delayDebounce = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await api.get(`/user/search?q=${searchQuery}`);
-        setSearchResults(res.data);
-      } catch (err) {
-        console.error('Failed to search users', err);
-      } finally {
-        setSearching(false);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl && 
+        (activeEl.tagName === 'INPUT' || 
+         activeEl.tagName === 'TEXTAREA' || 
+         activeEl.tagName === 'SELECT' || 
+         activeEl.getAttribute('contenteditable') === 'true')
+      ) {
+        return;
       }
-    }, 400);
 
-    return () => clearTimeout(delayDebounce);
-  }, [searchQuery]);
+      if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setDefaultStatus('Todo');
+        setNewTask(p => ({ ...p, status: 'Todo', assignedTo: '' }));
+        setIsModalOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const fetchProject = async () => {
     try {
@@ -309,24 +336,7 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleAddMember = async (targetUserId: string) => {
-    try {
-      await api.post(`/projects/${id}/members`, { userId: targetUserId, role: 'member' });
-      await fetchProject();
-      setSearchQuery('');
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to add member');
-    }
-  };
 
-  const handleRemoveMember = async (memberUserId: string) => {
-    try {
-      await api.delete(`/projects/${id}/members/${memberUserId}`);
-      await fetchProject();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to remove member');
-    }
-  };
 
   const isImage = (filename: string) => {
     const ext = filename.split('.').pop()?.toLowerCase();
@@ -347,7 +357,7 @@ export default function ProjectDetail() {
 
   return (
     <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 flex-shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 flex-shrink-0">
         <div className="flex items-center gap-4">
           <button onClick={() => router.push('/projects')} className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -358,52 +368,19 @@ export default function ProjectDetail() {
           </div>
         </div>
         
-        {/* Team Collaboration section */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl p-1.5 px-3">
-            <span className="text-xs text-gray-500 font-medium mr-3 flex items-center gap-1">
-              <Users className="w-3.5 h-3.5" /> Team:
-            </span>
-            <div className="flex items-center">
-              {/* Owner Avatar */}
-              <div 
-                className="w-7 h-7 rounded-full bg-gradient-to-tr from-yellow-500 to-amber-500 flex items-center justify-center text-[10px] font-black text-white ring-2 ring-black cursor-help" 
-                title={`Project Owner: ${project.owner?.username}`}
-              >
-                {project.owner?.username?.[0]?.toUpperCase() || 'O'}
-              </div>
-              
-              {/* Members Avatars */}
-              {project.members?.map((m) => (
-                <div 
-                  key={m.id} 
-                  className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white ring-2 ring-black -ml-1.5 cursor-help" 
-                  title={`Team Member: ${m.user.username}`}
-                >
-                  {m.user.username[0].toUpperCase()}
-                </div>
-              ))}
-
-              {/* Manage team button */}
-              {isOwner && (
-                <button 
-                  onClick={() => setIsTeamModalOpen(true)} 
-                  className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 border border-dashed border-white/20 flex items-center justify-center text-gray-400 hover:text-white transition-all -ml-1.5"
-                  title="Manage Team Members"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-          
-          <button
-            onClick={() => { setDefaultStatus('Todo'); setNewTask(p => ({ ...p, status: 'Todo', assignedTo: '' })); setIsModalOpen(true); }}
-            className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-medium shadow-[0_0_15px_rgba(120,119,198,0.3)] transition-all flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" /> Add Task
-          </button>
-        </div>
+        <button
+          onClick={() => { setDefaultStatus('Todo'); setNewTask(p => ({ ...p, status: 'Todo', assignedTo: '' })); setIsModalOpen(true); }}
+          className="group relative flex items-center gap-2 px-4.5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:via-indigo-500 hover:to-blue-500 text-white rounded-xl font-semibold shadow-[0_0_15px_rgba(120,119,198,0.25)] hover:shadow-[0_0_22px_rgba(120,119,198,0.45)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 overflow-hidden"
+          title="Create a new task (HotKey: N)"
+        >
+          {/* Sheen effect overlay */}
+          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          <Plus className="w-4.5 h-4.5 text-white/90 group-hover:rotate-90 transition-transform duration-300 ease-out" />
+          <span className="text-sm tracking-wide">New Task</span>
+          <kbd className="hidden sm:inline-flex items-center justify-center px-1.5 py-0.5 ml-1.5 text-[9px] font-bold text-white/50 bg-white/10 border border-white/10 rounded-md">
+            N
+          </kbd>
+        </button>
       </div>
 
       <div className="flex-1 overflow-x-auto pb-4">
@@ -431,124 +408,6 @@ export default function ProjectDetail() {
         </DndContext>
       </div>
 
-      {/* Team Management Modal */}
-      {isTeamModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setIsTeamModalOpen(false)}>
-          <div className="w-full max-w-md bg-[#111] border border-white/10 rounded-3xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <Users className="w-5 h-5 text-purple-400" /> Manage Team
-              </h3>
-              <button onClick={() => setIsTeamModalOpen(false)} className="p-2 rounded-lg hover:bg-white/5 text-gray-400">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Search input */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-1.5">Search Users by Username or Email</label>
-                <input 
-                  value={searchQuery} 
-                  onChange={e => setSearchQuery(e.target.value)} 
-                  className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50" 
-                  placeholder="Type username or email..." 
-                />
-              </div>
-
-              {/* Search Results */}
-              {searchQuery.trim().length > 0 && (
-                <div className="bg-white/5 rounded-2xl p-2 border border-white/5 max-h-40 overflow-y-auto">
-                  {searching ? (
-                    <div className="flex items-center justify-center py-4 text-xs text-gray-400 gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-purple-500" /> Searching...
-                    </div>
-                  ) : searchResults.length === 0 ? (
-                    <div className="text-center py-4 text-xs text-gray-500">No users found.</div>
-                  ) : (
-                    searchResults.map(u => {
-                      const isAlreadyMember = project.members.some(m => m.userId === u.id);
-                      return (
-                        <div key={u.id} className="flex items-center justify-between p-2 hover:bg-white/5 rounded-xl">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold text-white">
-                              {u.username[0].toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold truncate text-white">{u.username}</p>
-                              <p className="text-[11px] text-gray-400 truncate">{u.email}</p>
-                            </div>
-                          </div>
-                          {isAlreadyMember ? (
-                            <span className="text-[10px] px-2.5 py-1 bg-white/10 rounded-lg text-gray-400 font-medium">Member</span>
-                          ) : (
-                            <button 
-                              onClick={() => handleAddMember(u.id)}
-                              className="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold transition-colors"
-                            >
-                              Add
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-
-              {/* Active Members list */}
-              <div>
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Project Roster</h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {/* Owner */}
-                  <div className="flex items-center justify-between p-2 bg-white/5 rounded-xl border border-yellow-500/20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-500 to-amber-500 flex items-center justify-center text-xs font-black text-white">
-                        {project.owner?.username?.[0]?.toUpperCase() || 'O'}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-white flex items-center gap-1.5">
-                          {project.owner?.username} <Shield className="w-3.5 h-3.5 text-yellow-500" />
-                        </p>
-                        <p className="text-[11px] text-gray-400">{project.owner?.email}</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] px-2 py-0.5 bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 rounded-md font-semibold">Owner</span>
-                  </div>
-
-                  {/* Members */}
-                  {project.members?.length === 0 ? (
-                    <div className="text-center py-4 text-xs text-gray-500 border border-dashed border-white/5 rounded-xl">
-                      No other team members added yet.
-                    </div>
-                  ) : (
-                    project.members.map(m => (
-                      <div key={m.id} className="flex items-center justify-between p-2 bg-white/5 rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-xs font-bold text-white">
-                            {m.user.username[0].toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-white">{m.user.username}</p>
-                            <p className="text-[11px] text-gray-400">{m.user.email}</p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => handleRemoveMember(m.user.id)}
-                          className="p-1.5 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded-lg transition-colors"
-                          title="Remove Member"
-                        >
-                          <UserX className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Task Create Modal */}
       {isModalOpen && (
@@ -593,7 +452,7 @@ export default function ProjectDetail() {
                   <select value={newTask.assignedTo} onChange={e => setNewTask(p => ({ ...p, assignedTo: e.target.value }))} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50">
                     <option value="">Unassigned</option>
                     {project.owner && <option value={project.owner.id}>{project.owner.username} (Owner)</option>}
-                    {project.members?.map(m => (
+                    {project.members?.filter(m => m.userId !== project.ownerId).map(m => (
                       <option key={m.user.id} value={m.user.id}>{m.user.username}</option>
                     ))}
                   </select>
@@ -662,7 +521,7 @@ export default function ProjectDetail() {
                   >
                     <option value="">Unassigned</option>
                     {project.owner && <option value={project.owner.id}>{project.owner.username} (Owner)</option>}
-                    {project.members?.map(m => (
+                    {project.members?.filter(m => m.userId !== project.ownerId).map(m => (
                       <option key={m.user.id} value={m.user.id}>{m.user.username}</option>
                     ))}
                   </select>

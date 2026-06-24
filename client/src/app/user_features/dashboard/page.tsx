@@ -9,6 +9,9 @@ import {
 import api from '@/lib/axios';
 import Link from 'next/link';
 import StatCard from '@/components/ui/StatCard';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { io } from 'socket.io-client';
 
 interface DashboardStats {
   totalTasks: number;
@@ -47,6 +50,7 @@ const PRIORITY_BADGE: Record<string, string> = {
 };
 
 export default function Dashboard() {
+  const { user } = useSelector((state: RootState) => state.auth);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -54,6 +58,24 @@ export default function Dashboard() {
   const [quickForm, setQuickForm] = useState({ title: '', projectId: '', priority: 'Medium', dueDate: '' });
   const [submitting, setSubmitting] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const socket = io('http://localhost:5000');
+    socket.emit('joinUser', user.id);
+
+    const handleRefresh = () => {
+      api.get('/dashboard/stats').then(r => setStats(r.data)).catch(() => {});
+      api.get('/projects?page=1&limit=50').then(r => setProjects(r.data.data || r.data)).catch(() => {});
+    };
+
+    socket.on('projectAdded', handleRefresh);
+    socket.on('projectRemoved', handleRefresh);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
 
   useEffect(() => {
     const fetchAll = async () => {

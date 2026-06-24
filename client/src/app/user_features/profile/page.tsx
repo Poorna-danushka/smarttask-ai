@@ -10,7 +10,7 @@ import { RootState } from '@/store';
 import { setCredentials } from '@/store/slices/authSlice';
 import api from '@/lib/axios';
 import { AxiosError } from 'axios';
-import { saveAuthTokens, getAccessToken, getRefreshToken } from '@/lib/tokenStorage';
+import { saveAuthTokens } from '@/lib/tokenStorage';
 
 type DashboardStats = {
   totalTasks?: number;
@@ -68,9 +68,8 @@ export default function Profile() {
       const res = await api.patch('/user/profile', { username });
       if (user) {
         const updatedUser = { ...user, username: res.data.user.username, avatar: res.data.user.avatar ?? user.avatar };
-        const currentToken = getAccessToken(false) || '';
-        dispatch(setCredentials({ user: updatedUser, accessToken: currentToken }));
-        saveAuthTokens(currentToken, getRefreshToken(false) || '', updatedUser, false);
+        dispatch(setCredentials({ user: updatedUser }));
+        saveAuthTokens(updatedUser);
       }
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -98,9 +97,8 @@ export default function Profile() {
       setAvatarUrl(newAvatarUrl);
       if (user) {
         const updatedUser = { ...user, avatar: res.data.user.avatar };
-        const currentToken = getAccessToken(false) || '';
-        dispatch(setCredentials({ user: updatedUser, accessToken: currentToken }));
-        saveAuthTokens(currentToken, getRefreshToken(false) || '', updatedUser, false);
+        dispatch(setCredentials({ user: updatedUser }));
+        saveAuthTokens(updatedUser);
       }
     } catch (err: any) {
       alert(err?.response?.data?.message || 'Avatar upload failed');
@@ -119,9 +117,9 @@ export default function Profile() {
       setPwError('New passwords do not match');
       return;
     }
-    if (newPw.length < 6) {
+    if (newPw.length < 8) {
       setPwStatus('error');
-      setPwError('Password must be at least 6 characters');
+      setPwError('Password must be at least 8 characters');
       return;
     }
     setChangingPw(true);
@@ -351,7 +349,7 @@ export default function Profile() {
                     value={newPw}
                     onChange={e => setNewPw(e.target.value)}
                     className="w-full pl-11 pr-12 py-3.5 bg-black/50 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
-                    placeholder="Min 6 characters"
+                    placeholder="Min 8 characters"
                   />
                   <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors">
                     {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
