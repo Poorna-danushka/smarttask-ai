@@ -8,11 +8,33 @@ const {
   verifyRefreshToken,
 } = require('../utils/token.util');
 
-const buildAuthResponse = (user, refreshToken) => ({
-  user: { id: user.id, username: user.username, email: user.email, role: user.role },
-  accessToken: generateAccessToken(user),
-  refreshToken,
+/** Shared cookie option factory */
+const cookieOptions = (days) => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  maxAge: days * 24 * 60 * 60 * 1000,
+  path: '/',
 });
+
+/** Clear all legacy and current auth cookies */
+const clearAllAuthCookies = (res) => {
+  const opts = { path: '/' };
+  // Current unified names
+  res.clearCookie('accessToken', opts);
+  res.clearCookie('refreshToken', opts);
+  // Legacy role-prefixed names (clean up if still present)
+  res.clearCookie('userAccessToken', opts);
+  res.clearCookie('userRefreshToken', opts);
+  res.clearCookie('adminAccessToken', opts);
+  res.clearCookie('adminRefreshToken', opts);
+};
+
+/** Set auth cookies using unified names */
+const setAuthCookies = (res, accessToken, refreshToken) => {
+  res.cookie('accessToken', accessToken, cookieOptions(1 / 24)); // 1 hour
+  res.cookie('refreshToken', refreshToken, cookieOptions(7));    // 7 days
+};
 
 exports.register = async (req, res) => {
   try {
@@ -37,9 +59,13 @@ exports.register = async (req, res) => {
       },
     });
 
+    const accessToken = generateAccessToken(user);
+    clearAllAuthCookies(res);
+    setAuthCookies(res, accessToken, refreshPayload.token);
+
     res.status(201).json({
       message: 'User registered successfully',
-      ...buildAuthResponse(user, refreshPayload.token),
+      user: { id: user.id, username: user.username, email: user.email, role: user.role, avatar: user.avatar ?? null },
     });
   } catch (error) {
     console.error('Register error:', error);
@@ -66,9 +92,14 @@ exports.login = async (req, res) => {
       },
     });
 
+    const accessToken = generateAccessToken(user);
+    // Always clear ALL old session cookies first to avoid cookie conflicts
+    clearAllAuthCookies(res);
+    setAuthCookies(res, accessToken, refreshPayload.token);
+
     res.json({
       message: 'Login successful',
-      ...buildAuthResponse(user, refreshPayload.token),
+      user: { id: user.id, username: user.username, email: user.email, role: user.role, avatar: user.avatar ?? null },
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -78,9 +109,14 @@ exports.login = async (req, res) => {
 
 exports.refresh = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // Support both unified and legacy cookie names during transition
+    const refreshToken =
+      req.cookies.refreshToken ||
+      req.cookies.userRefreshToken ||
+      req.cookies.adminRefreshToken;
+
     if (!refreshToken) {
-      return res.status(400).json({ message: 'Refresh token is required' });
+      return res.status(401).json({ message: 'Refresh token is required' });
     }
 
     const decoded = verifyRefreshToken(refreshToken);
@@ -112,10 +148,14 @@ exports.refresh = async (req, res) => {
       }),
     ]);
 
+    const nextAccessToken = generateAccessToken(user);
+    // Always write using unified names and clear legacy ones
+    clearAllAuthCookies(res);
+    setAuthCookies(res, nextAccessToken, nextRefresh.token);
+
     res.json({
       message: 'Token refreshed successfully',
-      accessToken: generateAccessToken(user),
-      refreshToken: nextRefresh.token,
+      user: { id: user.id, username: user.username, email: user.email, role: user.role, avatar: user.avatar ?? null },
     });
   } catch (error) {
     console.error('Refresh error:', error);
@@ -125,11 +165,15 @@ exports.refresh = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
     const userId = req.user?.userId;
     if (!userId) {
       return res.status(401).json({ message: 'Authorization required' });
     }
+
+    const refreshToken =
+      req.cookies.refreshToken ||
+      req.cookies.userRefreshToken ||
+      req.cookies.adminRefreshToken;
 
     if (refreshToken) {
       const tokenHash = hashToken(refreshToken);
@@ -138,6 +182,7 @@ exports.logout = async (req, res) => {
       await prisma.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
     }
 
+    clearAllAuthCookies(res);
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
     console.error('Logout error:', error);

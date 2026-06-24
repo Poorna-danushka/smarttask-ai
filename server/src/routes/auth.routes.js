@@ -25,9 +25,7 @@ router.post('/login', validate([
   body('password').exists().withMessage('Password is required'),
 ]), authController.login);
 
-router.post('/refresh', validate([
-  body('refreshToken').exists().withMessage('Refresh token is required'),
-]), authController.refresh);
+router.post('/refresh', authController.refresh);
 
 router.post('/forgot-password', validate([
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
@@ -38,8 +36,6 @@ router.post('/reset-password', validate([
   body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters'),
 ]), authController.resetPassword);
 
-router.post('/logout', verifyToken, validate([
-  body('refreshToken').optional().isString().withMessage('Refresh token must be a string'),
-]), authController.logout);
+router.post('/logout', verifyToken, authController.logout);
 
 module.exports = router;

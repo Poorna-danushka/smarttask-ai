@@ -1,13 +1,16 @@
 const { verifyAccessToken } = require('../utils/token.util');
 
 const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  const cookies = req.cookies || {};
+  // Use unified cookie name; also accept legacy names for backward compatibility
+  const token =
+    cookies.accessToken ||
+    cookies.userAccessToken ||
+    cookies.adminAccessToken;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return res.status(401).json({ message: 'No authorization token provided' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = verifyAccessToken(token);

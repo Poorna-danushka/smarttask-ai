@@ -22,6 +22,9 @@ const searchRoutes = require('./routes/search.routes');
 // Socket manager
 const { initSocket } = require('./sockets/socketManager');
 
+// Security middlewares
+const { cookieParser, csrfTokenSetter, csrfProtection } = require('./middlewares/security.middleware');
+
 const app = express();
 const server = http.createServer(app);
 app.disable('x-powered-by');
@@ -37,11 +40,14 @@ app.use(cors({
     callback(new Error('CORS policy violation: Origin not allowed'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false,
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+  credentials: true,
   optionsSuccessStatus: 204,
 }));
 
+app.use(cookieParser);
+app.use(csrfTokenSetter);
+app.use(csrfProtection);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -69,7 +75,7 @@ const apiLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 200, // Increased to prevent lockouts during testing/development
   standardHeaders: true,
   legacyHeaders: false,
 });

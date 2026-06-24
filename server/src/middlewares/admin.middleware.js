@@ -2,12 +2,16 @@ const prisma = require('../config/prisma');
 const { verifyAccessToken } = require('../utils/token.util');
 
 const verifyAdmin = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const cookies = req.cookies || {};
+  // Use unified cookie name; also accept legacy names for backward compatibility
+  const token =
+    cookies.accessToken ||
+    cookies.adminAccessToken ||
+    cookies.userAccessToken;
+
+  if (!token) {
     return res.status(401).json({ message: 'No authorization token provided' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = verifyAccessToken(token);
