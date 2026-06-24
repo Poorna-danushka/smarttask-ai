@@ -137,9 +137,18 @@ export default function AdminDashboard() {
             <div className="space-y-3">
               {(stats?.recentUsers || []).slice(0, 5).map((u: any) => (
                 <div key={u.id} className="flex items-center gap-3">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${u.role === 'admin' ? 'bg-gradient-to-tr from-red-500 to-orange-400' : 'bg-gradient-to-tr from-purple-500 to-blue-500'}`}>
-                    {u.username[0]?.toUpperCase()}
-                  </div>
+                  {u.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000${u.avatar}`}
+                      alt={u.username}
+                      className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${u.role === 'admin' ? 'bg-gradient-to-tr from-red-500 to-orange-400' : 'bg-gradient-to-tr from-purple-500 to-blue-500'}`}>
+                      {u.username[0]?.toUpperCase()}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate">{u.username}</p>
                     <p className="text-xs text-gray-600 truncate">{u.email}</p>

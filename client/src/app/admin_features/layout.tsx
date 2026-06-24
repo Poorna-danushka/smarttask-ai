@@ -117,9 +117,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Admin User */}
         <div className="p-4 border-t border-white/[0.06]">
           <div className="flex items-center gap-3 px-2 mb-4">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-red-500 to-orange-400 flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-              {admin?.username?.[0]?.toUpperCase()}
-            </div>
+            {admin?.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={admin.avatar.startsWith('http') ? admin.avatar : `http://localhost:5000${admin.avatar}`}
+                alt={admin.username}
+                className="w-9 h-9 rounded-full object-cover flex-shrink-0 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-red-500 to-orange-400 flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                {admin?.username?.[0]?.toUpperCase()}
+              </div>
+            )}
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-semibold truncate leading-none">{admin?.username}</p>
               <p className="text-[11px] text-gray-600 truncate mt-0.5">{admin?.email}</p>

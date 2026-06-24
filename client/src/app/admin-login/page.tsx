@@ -24,15 +24,15 @@ export default function AdminLogin() {
 
     try {
       const response = await api.post('/auth/login', { email, password });
-      const { user, accessToken, refreshToken } = response.data;
+      const { user } = response.data;
 
       if (user.role !== 'admin') {
         setError('Access denied. This portal is for administrators only.');
         return;
       }
 
-      saveAuthTokens(accessToken, refreshToken, user, true);
-      dispatch(setAdminCredentials({ admin: user, accessToken }));
+      saveAuthTokens(user, true);
+      dispatch(setAdminCredentials({ admin: user }));
       router.push('/admin_features/dashboard');
     } catch (error: unknown) {
       const message = error instanceof Error
@@ -45,7 +45,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#080a0f] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-[#080a0f] relative overflow-hidden p-4 sm:p-6">
       {/* Background */}
       <div className="absolute inset-0">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-red-900/20 rounded-full blur-[150px]"></div>
@@ -56,17 +56,17 @@ export default function AdminLogin() {
         </div>
       </div>
 
-      <div className="relative z-10 w-full max-w-md px-4">
+      <div className="relative z-10 w-full max-w-md">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-red-600 to-orange-500 shadow-[0_0_40px_rgba(239,68,68,0.4)] mb-5">
-            <Shield className="w-8 h-8 text-white" />
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-red-600 to-orange-500 shadow-[0_0_40px_rgba(239,68,68,0.4)] mb-4 sm:mb-5">
+            <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-extrabold text-white mb-1">Admin Portal</h1>
-          <p className="text-gray-500 text-sm">SmartTask AI — Restricted Access</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-1">Admin Portal</h1>
+          <p className="text-gray-500 text-xs sm:text-sm">SmartTask AI — Restricted Access</p>
         </div>
 
-        <div className="p-8 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.5)]">
+        <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.5)]">
           {error && (
             <div className="mb-5 flex items-start gap-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20">
               <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
