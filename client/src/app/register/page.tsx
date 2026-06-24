@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import Link from 'next/link';
-import { User, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
+import { User, Mail, Lock, Loader2, ArrowRight, ArrowLeft, BrainCircuit } from 'lucide-react';
 import api from '@/lib/axios';
 import { AxiosError } from 'axios';
 import { setCredentials } from '@/store/slices/authSlice';
@@ -26,11 +26,11 @@ export default function Register() {
 
     try {
       const response = await api.post('/auth/register', { username, email, password });
-      const { user, accessToken, refreshToken } = response.data;
+      const { user } = response.data;
 
-      saveAuthTokens(accessToken, refreshToken, user, false);
-      dispatch(setCredentials({ user, accessToken }));
-      
+      saveAuthTokens(user, false);
+      dispatch(setCredentials({ user }));
+
       router.push('/user_features/dashboard');
     } catch (error: unknown) {
       const axiosError = error as AxiosError;
@@ -44,19 +44,36 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] py-12">
-      <div className="w-full max-w-md p-8 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_0_40px_rgba(120,119,198,0.15)] relative overflow-hidden">
-        
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] p-4 sm:p-6 py-12">
+
+      {/* Back Button — floating top-left */}
+      <Link
+        href="/homepage"
+        className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-sm font-medium transition-all duration-200 backdrop-blur-md group"
+      >
+        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+        <span className="hidden sm:inline">Back</span>
+      </Link>
+
+      <div className="w-full max-w-md p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_0_40px_rgba(120,119,198,0.15)] relative overflow-hidden">
+
         {/* Glow Effects */}
         <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/20 rounded-full blur-[50px]"></div>
         <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500/20 rounded-full blur-[50px]"></div>
 
         <div className="relative z-10">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-2">
-              Join SmartTask
-            </h1>
-            <p className="text-gray-400 text-sm">Create an account to supercharge your productivity.</p>
+          <div className="text-center mb-6 sm:mb-8">
+            {/* Clickable logo → back to homepage */}
+            <Link
+              href="/homepage"
+              className="inline-flex items-center justify-center gap-2 mb-2 group"
+            >
+              <BrainCircuit className="w-6 h-6 text-blue-400 group-hover:text-blue-300 transition-colors" />
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 group-hover:from-blue-300 group-hover:to-purple-300 transition-all">
+                Join SmartTask
+              </h1>
+            </Link>
+            <p className="text-gray-400 text-xs sm:text-sm">Create an account to supercharge your productivity.</p>
           </div>
 
           {error && (
