@@ -25,26 +25,27 @@ SmartTask AI is a full-stack application designed to help teams and individuals 
 
 ### User Features
 - 📊 **Dashboard**: Overview of projects, tasks, and analytics
-- 📁 **Project Management**: Create, edit, and organize projects
-- ✅ **Task Management**: Kanban board, task lists, and task details
+- 📁 **Project Management**: Create, edit, and organize projects with collaborative team rosters
+- ✅ **Task Management**: Kanban board with interactive drag-and-drop, task lists, and details
 - 📈 **Analytics**: Productivity metrics and progress tracking
-- 🔔 **Notifications**: Real-time task updates and mentions
-- 👤 **Profile Management**: User settings and preferences
+- 🔔 **Notifications**: Real-time task updates and mentions via WebSockets
+- 👤 **Profile Management**: User profile customization and custom avatar uploads
+- 🔑 **Password Recovery**: Secure forgot-password email requests and reset-password validation flows
 - 🔍 **Global Search**: Search across tasks and projects
-- 📎 **File Attachments**: Upload and manage project files
+- 📎 **File Attachments**: Upload, display, and manage files on individual tasks
 
 ### Admin Features
-- 👥 **User Management**: View, manage, and deactivate users
-- 📊 **System Analytics**: Platform-wide analytics and insights
-- 🎯 **Activity Monitoring**: Track user activities
-- ⚙️ **System Configuration**: Manage platform settings
+- 👥 **User Management**: View, delete, and modify user roles in a comprehensive users list with actual avatar support
+- 📊 **System Analytics**: Platform-wide analytics, user sign-up counts, and project stats
+- 📢 **Global Broadcast**: Send real-time announcements/notifications to all active users
+- 📁 **Platform Audit**: Complete project listing and administrative oversight
 
 ### Security Features
-- 🔐 **JWT Authentication**: Secure token-based auth with refresh tokens
-- 🍪 **HTTP-Only Cookies**: Tokens stored in secure HTTP-only cookies (prevents XSS)
-- 🔄 **Automatic Token Refresh**: Seamless session management
-- 👮 **Role-Based Access Control**: User and Admin role separation
-- 🛡️ **Protected Routes**: Authentication guards on all protected pages
+- 🔐 **Unified Cookie-Only JWT Auth**: Tokens set as server-only `HttpOnly`, `SameSite` cookies (no local storage exposure)
+- 🛡️ **Cross-Session Isolation**: Automatic token clearing on new logins/refreshes to prevent admin/user credential conflicts
+- ⚡ **CSRF Protection**: Dual-cookie pattern with custom headers (`X-CSRF-Token`) for state-changing operations
+- 👮 **Role-Based Access Control**: Strict middleware verification for admin-only and user-only routes
+- 🔒 **Data Encryption**: Secure credential hashing using bcrypt (12 rounds) and parameter validation
 
 ## 🏗️ Architecture
 
@@ -161,8 +162,8 @@ npm install
 
 2. **Create environment file** (`.env.local`):
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api
-NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_SERVER_URL=http://localhost:5000
 ```
 
 3. **Run development server**:
@@ -192,6 +193,8 @@ createdb smarttask_ai
 DATABASE_URL=postgresql://user:password@localhost:5432/smarttask_ai
 JWT_SECRET=your-secret-key
 JWT_REFRESH_SECRET=your-refresh-secret
+CLIENT_URL=http://localhost:3000
+NODE_ENV=development
 PORT=5000
 ```
 
@@ -266,22 +269,23 @@ npm test         # Run tests
 ## 🔗 API Integration
 
 ### Token Storage (tokenStorage.ts)
-Centralized cookie management for auth tokens:
+Centralized cookie management for non-sensitive user metadata (JWT tokens are set as server-only `HttpOnly` cookies and are not accessible by JavaScript):
 ```typescript
-saveAuthTokens(accessToken, refreshToken, user, isAdmin)
-getAccessToken(isAdmin)
-getRefreshToken(isAdmin)
-getStoredUser(isAdmin)
-clearAuthTokens(isAdmin)
+saveAuthTokens(user, _isAdmin?)  // Saves user metadata in 'userInfo' cookie
+clearAuthTokens(_isAdmin?)      // Clears user metadata cookie
+getStoredUser(_isAdmin?)        // Reads user metadata from cookie
+isAdminSession()                // Checks if stored user is an admin
+getAccessToken(_isAdmin?)       // Returns null (handled via HttpOnly cookies)
+getRefreshToken(_isAdmin?)      // Returns null (handled via HttpOnly cookies)
 ```
 
 ### Axios Instances
-- **User API** (`lib/axios.ts`): For user requests with auto token refresh
-- **Admin API** (`lib/adminAxios.ts`): For admin-only requests
+- **User API** (`lib/axios.ts`): For user requests with auto token refresh (cookies sent automatically)
+- **Admin API** (`lib/adminAxios.ts`): For admin-only requests (cookies sent automatically)
 
 ### Interceptors
-- Request interceptor: Adds access token to headers
-- Response interceptor: Handles 401 errors and token refresh
+- **Request Interceptor**: Extracts the `csrfToken` cookie and injects it as an `X-CSRF-Token` header for state-changing requests to prevent CSRF attacks.
+- **Response Interceptor**: Catches `401 Unauthorized` responses and fires a unified silent refresh request to the `/refresh` endpoint. It uses a shared refresh promise pattern to prevent multiple concurrent API failures from initiating duplicate token refreshes.
 
 ## 📚 Available Routes
 
@@ -307,6 +311,8 @@ clearAuthTokens(isAdmin)
 - `/register` - User registration
 - `/admin-login` - Admin login
 - `/homepage` - Landing page
+- `/forgot-password` - Request a password reset link
+- `/reset-password` - Reset password using validation token
 
 ## 🤝 Contributing
 
