@@ -9,13 +9,17 @@ const {
 } = require('../utils/token.util');
 
 /** Shared cookie option factory */
-const cookieOptions = (days) => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: days * 24 * 60 * 60 * 1000,
-  path: '/',
-});
+const cookieOptions = (days) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    // cross-domain (Vercel → Render) requires 'none'; local dev uses 'strict'
+    sameSite: isProduction ? 'none' : 'strict',
+    maxAge: days * 24 * 60 * 60 * 1000,
+    path: '/',
+  };
+};
 
 /** Clear all legacy and current auth cookies */
 const clearAllAuthCookies = (res) => {
