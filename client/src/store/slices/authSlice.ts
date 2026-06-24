@@ -14,7 +14,7 @@
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { clearAuthTokens, getAccessToken, getStoredUser } from '@/lib/tokenStorage';
+import { clearAuthTokens, getStoredUser } from '@/lib/tokenStorage';
 
 /**
  * User information stored in Redux and cookies
@@ -39,12 +39,10 @@ interface User {
  * 
  * @interface AuthState
  * @property {User|null} user - Current logged-in user or null
- * @property {string|null} accessToken - JWT access token for API requests
  * @property {boolean} isAuthenticated - Whether user is currently authenticated
  */
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
   isAuthenticated: boolean;
 }
 
@@ -54,7 +52,6 @@ interface AuthState {
  */
 const initialState: AuthState = {
   user: null,
-  accessToken: null,
   isAuthenticated: false,
 };
 
@@ -71,18 +68,17 @@ const authSlice = createSlice({
     /**
      * Set user credentials after successful login
      * 
-     * Called by login and register pages after receiving tokens from backend.
+     * Called by login and register pages.
      * Updates both Redux state and cookies for persistence.
      * 
      * @param {AuthState} state - Current Redux state
-     * @param {PayloadAction<{user: User, accessToken: string}>} action - Login response
+     * @param {PayloadAction<{user: User}>} action - Login response
      * 
      * @example
-     * dispatch(setCredentials({ user, accessToken }))
+     * dispatch(setCredentials({ user }))
      */
-    setCredentials: (state, action: PayloadAction<{ user: User; accessToken: string }>) => {
+    setCredentials: (state, action: PayloadAction<{ user: User }>) => {
       state.user = action.payload.user;
-      state.accessToken = action.payload.accessToken;
       state.isAuthenticated = true;
     },
 
@@ -100,10 +96,9 @@ const authSlice = createSlice({
      */
     logout: (state) => {
       state.user = null;
-      state.accessToken = null;
       state.isAuthenticated = false;
       if (typeof window !== 'undefined') {
-        clearAuthTokens(false);
+        clearAuthTokens();
       }
     },
 
@@ -111,13 +106,10 @@ const authSlice = createSlice({
      * Rehydrate auth state from secure cookies
      * 
      * Called on page load/refresh to restore user session from cookies.
-     * If valid tokens exist, restores authentication without re-login.
      * 
      * Flow:
-     * 1. Get access token from cookie
-     * 2. Get user info from cookie
-     * 3. If both exist, restore to Redux state
-     * 4. axios interceptor will use token for API requests
+     * 1. Get user info from cookie
+     * 2. If it exists, restore to Redux state
      * 
      * @param {AuthState} state - Current Redux state
      * 
@@ -127,10 +119,9 @@ const authSlice = createSlice({
      */
     rehydrateAuth: (state) => {
       if (typeof window !== 'undefined') {
-        const token = getAccessToken(false);
-        const user = getStoredUser(false);
-        if (token && user) {
-          state.accessToken = token;
+        const user = getStoredUser();
+        // Only hydrate if stored user is a regular user (not admin)
+        if (user && user.role !== 'admin') {
           state.user = user;
           state.isAuthenticated = true;
         }
