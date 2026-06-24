@@ -11,6 +11,7 @@ import { setCredentials } from '@/store/slices/authSlice';
 import api from '@/lib/axios';
 import { AxiosError } from 'axios';
 import { saveAuthTokens } from '@/lib/tokenStorage';
+import { getAvatarUrl } from '@/lib/config';
 
 type DashboardStats = {
   totalTasks?: number;
@@ -93,7 +94,7 @@ export default function Profile() {
     formData.append('avatar', file);
     try {
       const res = await api.post('/user/avatar', formData);
-      const newAvatarUrl = `http://localhost:5000${res.data.user.avatar}`;
+      const newAvatarUrl = getAvatarUrl(res.data.user.avatar);
       setAvatarUrl(newAvatarUrl);
       if (user) {
         const updatedUser = { ...user, avatar: res.data.user.avatar };
@@ -169,7 +170,7 @@ export default function Profile() {
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={avatarUrl.startsWith('http') ? avatarUrl : `http://localhost:5000${avatarUrl}`}
+                    src={getAvatarUrl(avatarUrl)}
                     alt="Profile avatar"
                     className="w-full h-full rounded-[22px] object-cover"
                   />

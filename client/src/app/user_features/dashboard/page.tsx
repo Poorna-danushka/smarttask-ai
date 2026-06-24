@@ -12,6 +12,7 @@ import StatCard from '@/components/ui/StatCard';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { io } from 'socket.io-client';
+import { BACKEND_URL } from '@/lib/config';
 
 interface DashboardStats {
   totalTasks: number;
@@ -61,7 +62,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
-    const socket = io('http://localhost:5000');
+    const socket = io(BACKEND_URL);
     socket.emit('joinUser', user.id);
 
     const handleRefresh = () => {

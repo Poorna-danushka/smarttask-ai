@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Users, Search, Trash2, Loader2, RefreshCw, Shield, User, Calendar, ShieldAlert, X } from 'lucide-react';
 import adminApi from '@/lib/adminAxios';
+import { getAvatarUrl } from '@/lib/config';
 
 interface UserType {
   id: string;
@@ -201,7 +202,7 @@ export default function AdminUsers() {
                         {user.avatar ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000${user.avatar}`}
+                            src={getAvatarUrl(user.avatar)}
                             alt={user.username}
                             className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                           />

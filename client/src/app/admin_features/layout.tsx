@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { RootState } from '@/store';
 import { adminLogout, rehydrateAdmin } from '@/store/slices/adminAuthSlice';
+import { getAvatarUrl } from '@/lib/config';
 
 const navItems = [
   { name: 'Overview', href: '/admin_features/dashboard', icon: LayoutDashboard },
@@ -120,7 +121,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {admin?.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={admin.avatar.startsWith('http') ? admin.avatar : `http://localhost:5000${admin.avatar}`}
+                src={getAvatarUrl(admin.avatar)}
                 alt={admin.username}
                 className="w-9 h-9 rounded-full object-cover flex-shrink-0 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
               />

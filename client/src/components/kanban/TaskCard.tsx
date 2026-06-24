@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Calendar, Paperclip, Trash2 } from 'lucide-react';
+import { getAvatarUrl } from '@/lib/config';
 
 export interface Attachment {
   id: string;
@@ -105,7 +106,7 @@ export default function TaskCard({ task, onDelete, onClick, onMoveForward }: Tas
               task.assignee.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={task.assignee.avatar.startsWith('http') ? task.assignee.avatar : `http://localhost:5000${task.assignee.avatar}`}
+                  src={getAvatarUrl(task.assignee.avatar)}
                   alt={task.assignee.username}
                   title={`Assigned to ${task.assignee.username}`}
                   className="w-6 h-6 rounded-full object-cover shadow-md ring-1 ring-black flex-shrink-0 ml-2"

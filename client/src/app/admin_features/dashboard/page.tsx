@@ -5,6 +5,7 @@ import { Users, FolderKanban, CheckCircle2, AlertTriangle, Loader2, TrendingUp, 
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import adminApi from '@/lib/adminAxios';
 import StatCard from '@/components/ui/StatCard';
+import { getAvatarUrl } from '@/lib/config';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -140,7 +141,7 @@ export default function AdminDashboard() {
                   {u.avatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000${u.avatar}`}
+                      src={getAvatarUrl(u.avatar)}
                       alt={u.username}
                       className="w-7 h-7 rounded-full object-cover flex-shrink-0"
                     />

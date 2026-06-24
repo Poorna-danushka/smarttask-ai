@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/axios';
 import { io, Socket } from 'socket.io-client';
+import { BACKEND_URL } from '@/lib/config';
 import TaskCard, { Task, PRIORITY_COLORS } from '@/components/kanban/TaskCard';
 import KanbanColumn, { COLUMNS } from '@/components/kanban/KanbanColumn';
 
@@ -73,7 +74,7 @@ export default function ProjectDetail() {
 
   useEffect(() => {
     // Initialize WebSockets
-    const socket = io('http://localhost:5000');
+    const socket = io(BACKEND_URL);
     socketRef.current = socket;
 
     if (id) {
@@ -576,7 +577,7 @@ export default function ProjectDetail() {
                         <div key={att.id} className="flex flex-col gap-2 p-3 rounded-xl bg-white/5 border border-white/5 overflow-hidden hover:bg-white/10 transition-colors group">
                           {image && (
                             <div className="relative aspect-video rounded-lg overflow-hidden bg-black/40 border border-white/5">
-                              <img src={`http://localhost:5000${att.fileUrl}`} alt={att.fileName} className="w-full h-full object-cover" />
+                              <img src={`${BACKEND_URL}${att.fileUrl}`} alt={att.fileName} className="w-full h-full object-cover" />
                             </div>
                           )}
                           <div className="flex items-center justify-between gap-2">
@@ -586,7 +587,7 @@ export default function ProjectDetail() {
                               </div>
                               <span className="text-xs font-medium truncate text-gray-300" title={att.fileName}>{att.fileName}</span>
                             </div>
-                            <a href={`http://localhost:5000${att.fileUrl}`} target="_blank" rel="noreferrer" className="p-1.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex-shrink-0">
+                            <a href={`${BACKEND_URL}${att.fileUrl}`} target="_blank" rel="noreferrer" className="p-1.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex-shrink-0">
                               <Download className="w-3.5 h-3.5" />
                             </a>
                           </div>

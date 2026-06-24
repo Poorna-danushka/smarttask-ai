@@ -11,6 +11,7 @@ import { RootState } from '@/store';
 import api from '@/lib/axios';
 import Link from 'next/link';
 import { io } from 'socket.io-client';
+import { BACKEND_URL, getAvatarUrl } from '@/lib/config';
 
 interface ProjectMember {
   id: string;
@@ -48,9 +49,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string 
 
 /** Resolves an avatar URL – handles absolute URLs, relative server paths, and null */
 function avatarSrc(avatar: string | null): string | null {
-  if (!avatar) return null;
-  if (avatar.startsWith('http')) return avatar;
-  return `http://localhost:5000${avatar}`;
+  return getAvatarUrl(avatar) || null;
 }
 
 /** Compact avatar with real image or initial-letter fallback */
@@ -134,7 +133,7 @@ export default function Projects() {
 
   useEffect(() => {
     if (!user) return;
-    const socket = io('http://localhost:5000');
+    const socket = io(BACKEND_URL);
     socket.emit('joinUser', user.id);
 
     socket.on('projectAdded', () => {
@@ -594,7 +593,7 @@ export default function Projects() {
                             {u.avatar ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img 
-                                src={u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000${u.avatar}`}
+                                src={getAvatarUrl(u.avatar)}
                                 alt={u.username}
                                 className="w-8 h-8 rounded-full object-cover"
                               />
@@ -637,7 +636,7 @@ export default function Projects() {
                       {selectedTeamProject.owner?.avatar ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img 
-                          src={selectedTeamProject.owner.avatar.startsWith('http') ? selectedTeamProject.owner.avatar : `http://localhost:5000${selectedTeamProject.owner.avatar}`}
+                          src={getAvatarUrl(selectedTeamProject.owner.avatar)}
                           alt={selectedTeamProject.owner.username}
                           className="w-8 h-8 rounded-full object-cover"
                         />
@@ -668,7 +667,7 @@ export default function Projects() {
                           {m.user.avatar ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img 
-                              src={m.user.avatar.startsWith('http') ? m.user.avatar : `http://localhost:5000${m.user.avatar}`}
+                              src={getAvatarUrl(m.user.avatar)}
                               alt={m.user.username}
                               className="w-8 h-8 rounded-full object-cover"
                             />

@@ -20,6 +20,7 @@ type SearchResult = {
 import { RootState } from '@/store';
 import { logout, setCredentials } from '@/store/slices/authSlice';
 import api from '@/lib/axios';
+import { BACKEND_URL, getAvatarUrl } from '@/lib/config';
 
 const navItems = [
   { name: 'Dashboard',     href: '/user_features/dashboard',     icon: LayoutDashboard, exact: true  },
@@ -75,7 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   /* ── real-time user socket room for notifications ── */
   useEffect(() => {
     if (!isAuthenticated || !user) return;
-    const socket = io('http://localhost:5000');
+    const socket = io(BACKEND_URL);
     socket.emit('joinUser', user.id);
 
     socket.on('notificationReceived', () => {
@@ -289,7 +290,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {user?.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000${user.avatar}`}
+                src={getAvatarUrl(user.avatar)}
                 alt={user.username}
                 className="w-8 h-8 rounded-full object-cover flex-shrink-0 shadow-[0_0_10px_rgba(139,92,246,0.3)]"
               />
@@ -417,7 +418,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {user?.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000${user.avatar}`}
+                  src={getAvatarUrl(user.avatar)}
                   alt={user?.username ?? 'Profile'}
                   className="w-8 h-8 rounded-full object-cover ml-1 ring-2 ring-purple-500/30
                              hover:ring-purple-500/60 hover:shadow-[0_0_14px_rgba(139,92,246,0.4)] transition-all"
