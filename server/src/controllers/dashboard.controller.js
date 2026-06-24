@@ -4,8 +4,17 @@ exports.getDashboardStats = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    const projects = await prisma.project.findMany({ where: { ownerId: userId }, select: { id: true } });
-    const projectIds = projects.map(p => p.id);
+    // Include both owned projects AND projects where user is a member
+    const [ownedProjects, memberProjects] = await Promise.all([
+      prisma.project.findMany({ where: { ownerId: userId }, select: { id: true } }),
+      prisma.projectMember.findMany({ where: { userId }, select: { projectId: true } }),
+    ]);
+    const projectIds = [
+      ...new Set([
+        ...ownedProjects.map(p => p.id),
+        ...memberProjects.map(m => m.projectId),
+      ]),
+    ];
 
     const [totalTasks, completedTasks, inProgressTasks, pendingTasks, urgentTasks, overdueTasks] = await Promise.all([
       prisma.task.count({ where: { projectId: { in: projectIds } } }),
@@ -44,7 +53,7 @@ exports.getDashboardStats = async (req, res) => {
       })
     );
 
-    res.json({ totalTasks, completedTasks, inProgressTasks, pendingTasks, urgentTasks, overdueTasks, productivity, upcomingDeadlines, weeklyData, totalProjects: projects.length });
+    res.json({ totalTasks, completedTasks, inProgressTasks, pendingTasks, urgentTasks, overdueTasks, productivity, upcomingDeadlines, weeklyData, totalProjects: projectIds.length });
   } catch (error) {
     console.error('Dashboard stats error:', error);
     res.status(500).json({ message: 'Server error' });

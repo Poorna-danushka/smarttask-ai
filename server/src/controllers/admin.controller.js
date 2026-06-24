@@ -12,7 +12,7 @@ exports.getStats = async (req, res) => {
       prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
         take: 5,
-        select: { id: true, username: true, email: true, role: true, createdAt: true },
+        select: { id: true, username: true, email: true, role: true, avatar: true, createdAt: true },
       }),
     ]);
 
@@ -52,7 +52,7 @@ exports.getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
-      select: { id: true, username: true, email: true, role: true, createdAt: true },
+      select: { id: true, username: true, email: true, role: true, avatar: true, createdAt: true },
     });
     res.json(users);
   } catch (error) {
@@ -112,7 +112,7 @@ exports.deleteProject = async (req, res) => {
 exports.getActivity = async (req, res) => {
   try {
     const [recentUsers, recentProjects, recentTasks, recentNotifications] = await Promise.all([
-      prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 10, select: { id: true, username: true, email: true, role: true, createdAt: true } }),
+      prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 10, select: { id: true, username: true, email: true, role: true, avatar: true, createdAt: true } }),
       prisma.project.findMany({ orderBy: { createdAt: 'desc' }, take: 10, include: { owner: { select: { username: true } } } }),
       prisma.task.findMany({ orderBy: { dueDate: 'desc' }, take: 10, where: { status: 'Completed' }, include: { project: { select: { title: true } }, assignee: { select: { username: true } } } }),
       prisma.notification.findMany({ orderBy: { createdAt: 'desc' }, take: 10, include: { user: { select: { username: true } } } }),

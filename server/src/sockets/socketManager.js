@@ -13,6 +13,11 @@ const initSocket = (server) => {
     socket.on('joinProject', (projectId) => {
       socket.join(projectId);
     });
+
+    socket.on('joinUser', (userId) => {
+      socket.join(userId);
+      console.log(`Socket ${socket.id} joined user room: ${userId}`);
+    });
     
     socket.on('taskUpdated', (data) => {
       socket.to(data.projectId).emit('taskChanged', data);

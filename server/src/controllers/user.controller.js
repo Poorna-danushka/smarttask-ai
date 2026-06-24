@@ -5,7 +5,7 @@ exports.getMe = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { id: true, username: true, email: true, role: true, createdAt: true },
+      select: { id: true, username: true, email: true, role: true, avatar: true, createdAt: true },
     });
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);
@@ -37,8 +37,8 @@ exports.changePassword = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword || newPassword.length < 6) {
-      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    if (!currentPassword || !newPassword || newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters' });
     }
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const valid = await bcrypt.compare(currentPassword, user.password);

@@ -10,12 +10,19 @@ const prisma = new PrismaClient({
   log: ['warn', 'error'],
 });
 
+const sanitizeDatabaseUrl = (str) => {
+  if (!str) return '';
+  // Mask username/password pattern
+  return str.replace(/:\/\/[^:]+:[^@]+@/, '://user:****@');
+};
+
 const connectPrisma = async () => {
   try {
     await prisma.$connect();
     console.log('Prisma connected successfully');
   } catch (error) {
-    console.error('Prisma connection failed:', error);
+    const errorMsg = error.message || String(error);
+    console.error('Prisma connection failed:', sanitizeDatabaseUrl(errorMsg));
     process.exit(1);
   }
 };

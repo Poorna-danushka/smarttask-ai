@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { getIo } = require('../sockets/socketManager');
 
 exports.createProject = async (req, res) => {
   try {
@@ -34,7 +35,11 @@ exports.getProjects = async (req, res) => {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { tasks: true } } },
+        include: {
+          _count: { select: { tasks: true } },
+          owner: { select: { id: true, username: true, email: true, avatar: true } },
+          members: { include: { user: { select: { id: true, username: true, email: true, avatar: true } } } },
+        },
       }),
       prisma.project.count({ where: { OR: [{ ownerId: userId }, { members: { some: { userId } } }] } }),
     ]);
@@ -113,7 +118,44 @@ exports.addMember = async (req, res) => {
     if (!project) return res.status(404).json({ message: 'Project not found' });
     if (project.ownerId !== ownerId) return res.status(403).json({ message: 'Only project owner can add members' });
 
-    const member = await prisma.projectMember.create({ data: { projectId: id, userId: newMemberId, role } });
+    // Validate that user exists
+    const userExists = await prisma.user.findUnique({ where: { id: newMemberId } });
+    if (!userExists) return res.status(404).json({ message: 'User not found' });
+
+    // Validate user is not the owner
+    if (newMemberId === project.ownerId) {
+      return res.status(400).json({ message: 'Project owner cannot be added as a member' });
+    }
+
+    // Validate user is not already a member
+    const existingMember = await prisma.projectMember.findFirst({
+      where: { projectId: id, userId: newMemberId }
+    });
+    if (existingMember) return res.status(409).json({ message: 'User is already a member' });
+
+    const member = await prisma.projectMember.create({
+      data: { projectId: id, userId: newMemberId, role },
+      include: { user: { select: { id: true, username: true, email: true, avatar: true } } }
+    });
+
+    // Create notification for the new member
+    await prisma.notification.create({
+      data: {
+        userId: newMemberId,
+        message: `You have been added to project: "${project.title}"`
+      }
+    });
+
+    // Emit socket event to project room and the newly added user room
+    try {
+      const io = getIo();
+      io.to(id).emit('memberAdded', member);
+      io.to(newMemberId).emit('projectAdded', { projectId: id });
+      io.to(newMemberId).emit('notificationReceived');
+    } catch (socketErr) {
+      console.error('Socket emission failed in addMember:', socketErr);
+    }
+
     res.status(201).json(member);
   } catch (error) {
     console.error('Add member error:', error);
@@ -149,7 +191,32 @@ exports.removeMember = async (req, res) => {
 
     const result = await prisma.projectMember.deleteMany({ where: { projectId: id, userId: memberId } });
     if (result.count === 0) return res.status(404).json({ message: 'Member not found' });
-    res.json({ message: 'Member removed' });
+
+    // Unassign tasks assigned to this user in this project
+    await prisma.task.updateMany({
+      where: { projectId: id, assignedTo: memberId },
+      data: { assignedTo: null }
+    });
+
+    // Create notification for the removed member
+    await prisma.notification.create({
+      data: {
+        userId: memberId,
+        message: `You have been removed from project: "${project.title}"`
+      }
+    });
+
+    // Emit socket event to project room and the removed user room
+    try {
+      const io = getIo();
+      io.to(id).emit('memberRemoved', { projectId: id, userId: memberId });
+      io.to(memberId).emit('projectRemoved', { projectId: id });
+      io.to(memberId).emit('notificationReceived');
+    } catch (socketErr) {
+      console.error('Socket emission failed in removeMember:', socketErr);
+    }
+
+    res.json({ message: 'Member removed and tasks unassigned' });
   } catch (error) {
     console.error('Remove member error:', error);
     res.status(500).json({ message: 'Server error' });
